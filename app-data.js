@@ -65,18 +65,33 @@
       return userId;
     }
 
-    async function callFn(payload) {
+    async function callFn(payload, timeoutMs = 90000) {
+      await ensureAuth();
       const { data: { session } } = await sb.auth.getSession();
-      const res = await fetch(FN, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token || cfg.SUPABASE_ANON_KEY}`,
-          "apikey": cfg.SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`analyze fn ${res.status}: ${await res.text()}`);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      let res;
+      try {
+        res = await fetch(FN, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token || cfg.SUPABASE_ANON_KEY}`,
+            "apikey": cfg.SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        clearTimeout(timer);
+        if (e.name === "AbortError") throw new Error("응답 시간이 초과됐어요(90초). 함수가 배포됐는지/OpenAI 키·크레딧이 있는지 확인하세요.");
+        throw new Error("함수 호출 실패(네트워크 또는 CORS). analyze 함수 배포 상태를 확인하세요.");
+      }
+      clearTimeout(timer);
+      if (!res.ok) {
+        let body = ""; try { body = await res.text(); } catch {}
+        throw new Error(`analyze fn ${res.status}: ${body}`);
+      }
       return res.json();
     }
 
