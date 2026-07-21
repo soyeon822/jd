@@ -505,9 +505,9 @@ tbody tr:last-child td{border-bottom:none}
         </div>
         <textarea class="textarea" id="myResume" placeholder="파일/링크로 넣으면 자동으로 채워집니다. 직접 입력·수정도 가능해요."></textarea>
         <input type="file" id="resumeFile" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none"/>
-        <div class="subhead">💼 포트폴리오 (선택)</div>
+        <div class="subhead">💼 포트폴리오 (선택 · 여러 파일 최대 20개)</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-          <button class="btn btn-primary" id="portfolioPick">📎 파일 첨부</button>
+          <button class="btn btn-primary" id="portfolioPick">📎 파일 첨부(여러 개)</button>
           <button class="btn btn-ghost" id="portfolioAnalyze">📊 이 포트폴리오 분석</button>
           <span id="portfolioFileName" style="font-size:13px;color:var(--text-3)"></span>
         </div>
@@ -516,7 +516,7 @@ tbody tr:last-child td{border-bottom:none}
           <button class="btn btn-ghost" id="portfolioUrlBtn">🔗 불러오기</button>
         </div>
         <textarea class="textarea" id="myPortfolio" placeholder="파일·링크로 넣거나 직접 입력하세요"></textarea>
-        <input type="file" id="portfolioFile" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none"/>
+        <input type="file" id="portfolioFile" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple style="display:none"/>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
           <button class="btn btn-primary" id="mysave">저장</button>
           <span id="mySaveState" style="font-size:13px;color:var(--text-3);align-self:center"></span>
@@ -1587,7 +1587,7 @@ async function initMypage(){
   $('#resumeAnalyze').onclick=()=>runMyTool('match',$('#resumeAnalyze'));
   $('#resumeUrlBtn').onclick=()=>loadFromUrl($('#resumeUrl').value.trim(),'myResume',$('#resumeUrlBtn'));
   $('#portfolioPick').onclick=()=>$('#portfolioFile').click();
-  $('#portfolioFile').onchange=e=>{const f=e.target.files[0];if(f)handleDocFile(f,'myPortfolio','portfolioFileName','포트폴리오');};
+  $('#portfolioFile').onchange=e=>{if(e.target.files.length)handleDocFiles(e.target.files,'myPortfolio','portfolioFileName','포트폴리오');};
   $('#portfolioAnalyze').onclick=()=>runMyTool('pfreview',$('#portfolioAnalyze'));
   $('#portfolioUrlBtn').onclick=()=>loadFromUrl($('#portfolioUrl').value.trim(),'myPortfolio',$('#portfolioUrlBtn'));
 }
@@ -1610,6 +1610,29 @@ async function loadFromUrl(url,targetId,btn){
     toast('링크 내용을 불러왔어요. [저장] 후 분석하세요','ok');
   }catch(e){toast(cleanErr(e),'err');}
   finally{btn.innerHTML=prev;btn.style.pointerEvents='auto';}
+}
+async function handleDocFiles(fileList,targetId,nameId,label){
+  const files=[...fileList].slice(0,20);
+  const nameEl=$('#'+nameId);
+  const parts=[];let done=0;
+  nameEl.textContent=`0/${files.length} 처리 중…`;
+  for(const file of files){
+    try{
+      let text='';
+      if(/\.pdf$/i.test(file.name)){ text=await pdfToText(file); }
+      else{
+        if(!window.TP_LIVE){toast('이미지 인식은 실시간 모드에서만 됩니다','err');}
+        else{const dataUrl=await fileToDataUrl(file); text=await window.TPDB.ai('ocr_text',{dataUrl});}
+      }
+      if(text&&String(text).trim()) parts.push(`### ${file.name}\n${String(text).trim()}`);
+    }catch(e){console.warn(file.name,e);}
+    done++; nameEl.textContent=`${done}/${files.length} 처리 중…`;
+  }
+  if(!parts.length){toast('추출된 텍스트가 없어요. PDF(글자형)나 직접 입력을 이용하세요','err');nameEl.textContent='';return;}
+  const cur=$('#'+targetId).value.trim();
+  $('#'+targetId).value=(cur?cur+'\n\n':'')+parts.join('\n\n');
+  nameEl.textContent=`✓ ${parts.length}개 파일`;
+  toast(`${parts.length}개 ${label} 파일을 불러왔어요. [저장] 후 분석하세요`,'ok');
 }
 async function handleDocFile(file,targetId,nameId,label){
   const nameEl=$('#'+nameId);nameEl.textContent=file.name+' 처리 중… ';
