@@ -1800,7 +1800,7 @@ async function showInterview(id){
     const r=await window.TPDB.ai('interview',{posting:p.data||p});
     const qs=(r&&r.questions)||[];
     $('#ivBody').innerHTML=`<div class="ai-card" style="margin:0">${qs.map(q=>`<div class="q-item"><div class="qc">${q.category||''}</div><div class="qq">${q.q||''}</div><div class="qt">💡 ${q.tip||''}</div></div>`).join('')||'생성 실패'}</div>`;
-  }catch(e){$('#ivBody').innerHTML=`<div class="ai-card">${window.TP_LIVE?('실패: '+(e.message||e)):'면접 질문 생성은 실시간 모드(Supabase 연결)에서 동작합니다.'}</div>`;}
+  }catch(e){$('#ivBody').innerHTML=`<div class="ai-card" style="color:var(--danger)">${window.TP_LIVE?('생성 실패: '+cleanErr(e)):'면접 질문 생성은 실시간 모드(Supabase 연결)에서 동작합니다.'}</div>`;}
 }
 async function showPlan(id){
   const p=POSTINGS.find(x=>x.id===id);
@@ -1816,7 +1816,7 @@ async function showPlan(id){
       ${pr.length?`<div class="subhead" style="margin-top:0">먼저 할 것</div><div class="tags" style="margin-bottom:14px">${pr.map(x=>`<span class="tag" style="border-color:var(--primary);color:var(--primary)">${x}</span>`).join('')}</div>`:''}
       ${weeks.map(w=>`<div class="plan-step"><div class="pn">${w.week||''}주</div><div><b>${w.focus||''}</b><ul style="margin:6px 0 0 18px;color:var(--text-2);font-size:13.5px;line-height:1.8">${(w.tasks||[]).map(t=>`<li>${t}</li>`).join('')}</ul></div></div>`).join('')}
     </div>`;
-  }catch(e){$('#planBody').innerHTML=`<div class="ai-card">${window.TP_LIVE?('실패: '+(e.message||e)):'취업 준비 플랜은 실시간 모드(Supabase 연결)에서 동작합니다.'}</div>`;}
+  }catch(e){$('#planBody').innerHTML=`<div class="ai-card" style="color:var(--danger)">${window.TP_LIVE?('생성 실패: '+cleanErr(e)):'취업 준비 플랜은 실시간 모드(Supabase 연결)에서 동작합니다.'}</div>`;}
 }
 
 /* ================= HISTORY (GPT-style) ================= */
