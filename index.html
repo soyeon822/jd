@@ -685,7 +685,7 @@ const POSTINGS = [
 
 const OCR_STATUS = ["ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","dup","fail"];
 
-const STATE = { analyzed:false, filtered:[...POSTINGS], sort:{key:null,dir:1}, compare:[], charts:{}, analyzeSeconds:0 };
+const STATE = { analyzed:false, realData:false, filtered:[...POSTINGS], sort:{key:null,dir:1}, compare:[], charts:{}, analyzeSeconds:0 };
 let EXP_FILTER = { types:[], ranges:[] };  // 경력 필터 (사진형 드롭다운)
 
 const $=(s,r=document)=>r.querySelector(s);
@@ -822,15 +822,18 @@ async function runLiveAnalysis(){
     }
     // 2) Edge Function 호출 → 구조화 추출
     const results=await window.TPDB.analyzeFiles(payload);
-    // 3) 중복 제거 + POSTINGS 구성
-    const seen=new Set();POSTINGS.length=0;let okc=0;
-    results.forEach((r,i)=>{
-      if(r.ocr_status!=='ok'||!r.data){return;}
+    // 3) 기존 누적 데이터에 병합 (회사|직무 중복 제거) — 덮어쓰지 않고 더함
+    if(!STATE.realData){POSTINGS.length=0;}   // 데모 mock 위에 쌓이지 않도록 최초 1회 초기화
+    STATE.realData=true;
+    const seen=new Set(POSTINGS.map(p=>(p.company||'')+'|'+(p.role||'')));
+    let okc=0, added=0;
+    results.forEach((r)=>{
+      if(r.ocr_status!=='ok'||!r.data){return;} okc++;
       const key=(r.data.company||'')+'|'+(r.data.role||'');
-      if(seen.has(key)){return;}seen.add(key);
+      if(seen.has(key)){return;} seen.add(key);
       const np=normalizePosting(r.data,POSTINGS.length+1);
       np.file_name=r.file_name;np.ocr_status='ok';np.data=r.data;
-      POSTINGS.push(np);okc++;
+      POSTINGS.push(np);added++;
     });
     if(!POSTINGS.length)throw new Error('추출된 공고가 없습니다. 파일을 확인하세요.');
     // 4) 시장 요약/인사이트
@@ -842,14 +845,14 @@ async function runLiveAnalysis(){
     STATE.analyzed=true;STATE.analyzeSeconds=(performance.now()-t0)/1000;
     buildDashboard();buildFilters();renderTable();buildComparePicker();
     const comp=uniq(POSTINGS.map(p=>p.company)).length;
-    await addHistory({type:'analysis',title:`채용시장 분석 · ${POSTINGS.length}개 공고`,
-      meta:`${comp}개 기업 · 성공 ${okc} · ${STATE.analyzeSeconds.toFixed(1)}초`,
+    await addHistory({type:'analysis',title:`누적 ${POSTINGS.length}개 공고${added?` (+${added} 추가)`:''}`,
+      meta:`${comp}개 기업 · 신규 ${added} · ${STATE.analyzeSeconds.toFixed(1)}초`,
       seconds:STATE.analyzeSeconds,fileCount:LIVE_FILES.length,okCount:okc,companyCount:comp,
       summary:AI_SUMMARY,insights:AI_INSIGHTS.map(x=>({icon:x[0],title:x[1],body:x[2]})),
       _postings:POSTINGS.map(p=>({file_name:p.file_name,ocr_status:'ok',data:p.data}))});
     btn.innerHTML='✓ 분석 완료';btn.style.pointerEvents='auto';
     switchView('dashboard');
-    toast(`${POSTINGS.length}개 공고 실시간 분석 완료 · DB 저장됨`,'ok');
+    toast(`+${added}개 추가 · 누적 ${POSTINGS.length}개 공고 반영됨`,'ok');
   }catch(e){
     console.error(e);
     btn.innerHTML='AI 분석 시작';btn.style.pointerEvents='auto';
@@ -1899,6 +1902,7 @@ async function openHistory(id){
       full.postings.forEach((p,i)=>POSTINGS.push(normalizePosting(p,i+1)));
       if(full.summary)AI_SUMMARY=full.summary;
       if(full.insights&&full.insights.length)AI_INSIGHTS=full.insights.map(x=>[x.icon||'✦',x.title||'',x.body||'']);
+      STATE.realData=true;
     }
   }catch(e){console.warn(e);}
   STATE.analyzed=true;STATE.analyzeSeconds=h.seconds||2.6;
@@ -1926,7 +1930,7 @@ async function restoreLatest(){
     if(full.summary)AI_SUMMARY=full.summary;
     if(full.insights&&full.insights.length)AI_INSIGHTS=full.insights.map(x=>[x.icon||'✦',x.title||'',x.body||'']);
     ACTIVE_HID=latest.id;
-    STATE.analyzed=true;STATE.analyzeSeconds=latest.seconds||0;
+    STATE.analyzed=true;STATE.realData=true;STATE.analyzeSeconds=latest.seconds||0;
     buildDashboard();buildFilters();renderTable();buildComparePicker();renderHistory();
     return true;
   }
