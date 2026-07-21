@@ -506,11 +506,17 @@ tbody tr:last-child td{border-bottom:none}
         <textarea class="textarea" id="myResume" placeholder="파일/링크로 넣으면 자동으로 채워집니다. 직접 입력·수정도 가능해요."></textarea>
         <input type="file" id="resumeFile" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none"/>
         <div class="subhead">💼 포트폴리오 (선택)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn btn-primary" id="portfolioPick">📎 파일 첨부</button>
+          <button class="btn btn-ghost" id="portfolioAnalyze">📊 이 포트폴리오 분석</button>
+          <span id="portfolioFileName" style="font-size:13px;color:var(--text-3)"></span>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input id="portfolioUrl" class="textarea" style="min-height:0;flex:1;padding:9px 12px" placeholder="포트폴리오 링크 (GitHub·Notion 공개·사이트)"/>
+          <input id="portfolioUrl" class="textarea" style="min-height:0;flex:1;padding:9px 12px" placeholder="또는 링크 (GitHub·블로그·공개 사이트)"/>
           <button class="btn btn-ghost" id="portfolioUrlBtn">🔗 불러오기</button>
         </div>
-        <textarea class="textarea" id="myPortfolio" placeholder="링크로 불러오거나 직접 입력하세요"></textarea>
+        <textarea class="textarea" id="myPortfolio" placeholder="파일·링크로 넣거나 직접 입력하세요"></textarea>
+        <input type="file" id="portfolioFile" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none"/>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
           <button class="btn btn-primary" id="mysave">저장</button>
           <span id="mySaveState" style="font-size:13px;color:var(--text-3);align-self:center"></span>
@@ -1577,9 +1583,12 @@ async function initMypage(){
   };
   $$('#view-mypage [data-ai]').forEach(b=>b.onclick=()=>runMyTool(b.dataset.ai,b));
   $('#resumePick').onclick=()=>$('#resumeFile').click();
-  $('#resumeFile').onchange=e=>{const f=e.target.files[0];if(f)handleResumeFile(f);};
+  $('#resumeFile').onchange=e=>{const f=e.target.files[0];if(f)handleDocFile(f,'myResume','resumeFileName','이력서');};
   $('#resumeAnalyze').onclick=()=>runMyTool('match',$('#resumeAnalyze'));
   $('#resumeUrlBtn').onclick=()=>loadFromUrl($('#resumeUrl').value.trim(),'myResume',$('#resumeUrlBtn'));
+  $('#portfolioPick').onclick=()=>$('#portfolioFile').click();
+  $('#portfolioFile').onchange=e=>{const f=e.target.files[0];if(f)handleDocFile(f,'myPortfolio','portfolioFileName','포트폴리오');};
+  $('#portfolioAnalyze').onclick=()=>runMyTool('pfreview',$('#portfolioAnalyze'));
   $('#portfolioUrlBtn').onclick=()=>loadFromUrl($('#portfolioUrl').value.trim(),'myPortfolio',$('#portfolioUrlBtn'));
 }
 async function loadFromUrl(url,targetId,btn){
@@ -1596,21 +1605,21 @@ async function loadFromUrl(url,targetId,btn){
   }catch(e){toast('불러오기 실패: '+(e.message||e),'err');}
   finally{btn.innerHTML=prev;btn.style.pointerEvents='auto';}
 }
-async function handleResumeFile(file){
-  const nameEl=$('#resumeFileName');nameEl.textContent=file.name+' 처리 중… ';
+async function handleDocFile(file,targetId,nameId,label){
+  const nameEl=$('#'+nameId);nameEl.textContent=file.name+' 처리 중… ';
   try{
     let text='';
     if(/\.pdf$/i.test(file.name)){
       text=await pdfToText(file);
     }else{
-      if(!window.TP_LIVE){toast('이미지 이력서 인식은 실시간 모드에서만 됩니다. PDF를 첨부하거나 직접 입력하세요','err');nameEl.textContent='';return;}
+      if(!window.TP_LIVE){toast('이미지 인식은 실시간 모드에서만 됩니다. PDF를 첨부하거나 직접 입력하세요','err');nameEl.textContent='';return;}
       const dataUrl=await fileToDataUrl(file);
       text=await window.TPDB.ai('ocr_text',{dataUrl});
     }
     if(!text||!String(text).trim()){toast('텍스트를 추출하지 못했어요. 직접 입력해주세요','err');nameEl.textContent=file.name+' (추출 실패)';return;}
-    $('#myResume').value=String(text).trim();
+    $('#'+targetId).value=String(text).trim();
     nameEl.textContent='✓ '+file.name;
-    toast('이력서 텍스트를 추출했어요. [저장] 후 분석하세요','ok');
+    toast(label+' 텍스트를 추출했어요. [저장] 후 분석하세요','ok');
   }catch(e){console.error(e);toast('처리 실패: '+(e.message||e),'err');nameEl.textContent='';}
 }
 async function runMyTool(kind,btn){
