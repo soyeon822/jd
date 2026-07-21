@@ -395,6 +395,8 @@ tbody tr:last-child td{border-bottom:none}
         AI 분석 시작
       </button>
     </div>
+
+    <div id="uploadNotice" style="max-width:760px;margin:16px auto 0"></div>
   </div>
 </section>
 
@@ -809,6 +811,26 @@ function normalizePosting(d,id){
     pref:arr(d.pref),req:arr(d.req),keywords:arr(d.keywords)};
 }
 
+/* 실패 파일 안내 */
+function reportFailures(failed){
+  const box=$('#uploadNotice');if(!box)return;
+  if(!failed||!failed.length){box.innerHTML='';return;}
+  box.innerHTML=`<div class="ai-card" style="border-left:4px solid var(--warn);margin:0">
+    <b style="color:var(--warn)">⚠️ ${failed.length}개 파일을 분석하지 못했어요</b>
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+      ${failed.map(f=>`<div style="font-size:13px"><b>${f.name}</b> <span style="color:var(--text-3)">— ${f.reason}</span></div>`).join('')}
+    </div>
+    <div style="font-size:12.5px;color:var(--text-2);margin-top:10px">💡 스캔된 PDF는 <b>이미지(PNG/JPG)</b>로 첨부하거나, 글자가 선택되는 PDF로 다시 올려보세요. 채용공고가 아닌 파일은 인식되지 않아요.</div>
+  </div>`;
+}
+function showFailModal(failed,added){
+  openModal(`<div class="modal-head"><div><h3>⚠️ 일부 파일 분석 실패</h3><div class="sub">성공 ${added}개 · 실패 ${failed.length}개</div></div>
+    <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><div class="tbl-wrap"><table><thead><tr><th>파일</th><th>실패 사유</th></tr></thead>
+    <tbody>${failed.map(f=>`<tr><td style="white-space:normal"><b>${f.name}</b></td><td style="white-space:normal;color:var(--text-2)">${f.reason}</td></tr>`).join('')}</tbody></table></div>
+    <div style="font-size:13px;color:var(--text-2);margin-top:14px">💡 <b>해결 방법:</b> 스캔본 PDF는 이미지(PNG/JPG)로 첨부, 글자 선택되는 PDF로 재시도, 또는 채용공고 본문만 담긴 파일로 올려주세요.</div></div>`);
+}
+
 /* 프로미스 타임아웃 래퍼 (pdf.js 등 멈춤 방지) */
 function withTimeout(promise,ms,label){
   return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error((label||'작업')+' 시간 초과')),ms))]);
@@ -818,6 +840,7 @@ function withTimeout(promise,ms,label){
 async function runLiveAnalysis(){
   const btn=$('#analyzeBtn');btn.innerHTML='<span class="spinner"></span> 파일 읽는 중…';btn.style.pointerEvents='none';
   const t0=performance.now();
+  const failed=[];   // 실패한 파일 안내용 {name, reason}
   try{
     // 1) 파일 → payload (이미지 dataURL / PDF 텍스트). Storage 저장은 비차단(선택).
     const payload=[];
@@ -827,18 +850,25 @@ async function runLiveAnalysis(){
       try{ window.TPDB.uploadFile(f).catch(()=>{}); }catch(e){}   // 저장은 기다리지 않음
       const isPdf=/\.pdf$/i.test(f.name);
       try{
-        if(isPdf){ const text=await withTimeout(pdfToText(f),25000,'PDF 읽기'); payload.push({name:f.name,text}); }
+        if(isPdf){ const text=await withTimeout(pdfToText(f),25000,'PDF 읽기');
+          if(!text||!text.trim()){failed.push({name:f.name,reason:'PDF에서 글자를 못 읽음 (스캔본이면 이미지로 첨부)'});continue;}
+          payload.push({name:f.name,text}); }
         else{ const dataUrl=await withTimeout(fileToDataUrl(f),15000,'파일 읽기'); payload.push({name:f.name,dataUrl}); }
-      }catch(e){ console.warn('파일 읽기 실패',f.name,e); }
+      }catch(e){ failed.push({name:f.name,reason:cleanErr(e)}); }
     }
-    if(!payload.length)throw new Error('파일에서 내용을 읽지 못했습니다.');
+    if(!payload.length){ reportFailures(failed); throw new Error('파일에서 내용을 읽지 못했습니다.'); }
     // 2) Edge Function 호출 → 파일 하나씩 처리(무한로딩·타임아웃 방지 + 진행률)
     const results=[];
     for(let i=0;i<payload.length;i++){
       btn.innerHTML=`<span class="spinner"></span> AI 분석 중… (${i+1}/${payload.length})`;
       try{ const r=await window.TPDB.analyzeFiles([payload[i]]); if(r&&r.length)results.push(...r); }
-      catch(e){ console.warn('파일 분석 실패',payload[i].name,e); results.push({file_name:payload[i].name,ocr_status:'fail',error:String(e)}); }
+      catch(e){ results.push({file_name:payload[i].name,ocr_status:'fail',error:cleanErr(e)}); }
     }
+    // 실패/빈 결과 수집
+    results.forEach(r=>{
+      if(r.ocr_status==='fail'){failed.push({name:r.file_name,reason:r.error||'AI 추출 실패'});}
+      else if(r.data && !r.data.company && !r.data.role){failed.push({name:r.file_name,reason:'채용공고 내용을 인식하지 못함'});}
+    });
     // 3) 기존 누적 데이터에 병합 (회사|직무 중복 제거) — 덮어쓰지 않고 더함
     if(!STATE.realData){POSTINGS.length=0;}   // 데모 mock 위에 쌓이지 않도록 최초 1회 초기화
     STATE.realData=true;
@@ -870,12 +900,14 @@ async function runLiveAnalysis(){
       summary:AI_SUMMARY,insights:AI_INSIGHTS.map(x=>({icon:x[0],title:x[1],body:x[2]})),
       _postings:POSTINGS.map(p=>({file_name:p.file_name,ocr_status:'ok',data:p.data}))});
     btn.innerHTML='✓ 분석 완료';btn.style.pointerEvents='auto';
+    reportFailures(failed);
     switchView('dashboard');
-    toast(`+${added}개 추가 · 누적 ${POSTINGS.length}개 공고 반영됨`,'ok');
+    toast(`+${added}개 추가 · 누적 ${POSTINGS.length}개${failed.length?` · ⚠️ ${failed.length}개 실패`:''}`, failed.length?'':'ok');
+    if(failed.length) showFailModal(failed, added);
   }catch(e){
     console.error(e);
     btn.innerHTML='AI 분석 시작';btn.style.pointerEvents='auto';
-    toast('분석 실패: '+(e.message||e),'err');
+    toast('분석 실패: '+cleanErr(e),'err');
   }
 }
 
