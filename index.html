@@ -499,10 +499,18 @@ tbody tr:last-child td{border-bottom:none}
           <button class="btn btn-ghost" id="resumeAnalyze">이 이력서 분석</button>
           <span id="resumeFileName" style="font-size:13px;color:var(--text-3)"></span>
         </div>
-        <textarea class="textarea" id="myResume" placeholder="PDF·이미지를 첨부하면 자동으로 텍스트가 채워집니다. 직접 입력·수정도 가능해요."></textarea>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="resumeUrl" class="textarea" style="min-height:0;flex:1;padding:9px 12px" placeholder="또는 링크 (Notion 공개·GitHub·블로그 등)"/>
+          <button class="btn btn-ghost" id="resumeUrlBtn">🔗 불러오기</button>
+        </div>
+        <textarea class="textarea" id="myResume" placeholder="파일/링크로 넣으면 자동으로 채워집니다. 직접 입력·수정도 가능해요."></textarea>
         <input type="file" id="resumeFile" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none"/>
         <div class="subhead">💼 포트폴리오 (선택)</div>
-        <textarea class="textarea" id="myPortfolio" placeholder="포트폴리오·깃허브·프로젝트 설명 등"></textarea>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="portfolioUrl" class="textarea" style="min-height:0;flex:1;padding:9px 12px" placeholder="포트폴리오 링크 (GitHub·Notion 공개·사이트)"/>
+          <button class="btn btn-ghost" id="portfolioUrlBtn">🔗 불러오기</button>
+        </div>
+        <textarea class="textarea" id="myPortfolio" placeholder="링크로 불러오거나 직접 입력하세요"></textarea>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
           <button class="btn btn-primary" id="mysave">저장</button>
           <span id="mySaveState" style="font-size:13px;color:var(--text-3);align-self:center"></span>
@@ -1570,6 +1578,22 @@ async function initMypage(){
   $('#resumePick').onclick=()=>$('#resumeFile').click();
   $('#resumeFile').onchange=e=>{const f=e.target.files[0];if(f)handleResumeFile(f);};
   $('#resumeAnalyze').onclick=()=>runMyTool('match',$('#resumeAnalyze'));
+  $('#resumeUrlBtn').onclick=()=>loadFromUrl($('#resumeUrl').value.trim(),'myResume',$('#resumeUrlBtn'));
+  $('#portfolioUrlBtn').onclick=()=>loadFromUrl($('#portfolioUrl').value.trim(),'myPortfolio',$('#portfolioUrlBtn'));
+}
+async function loadFromUrl(url,targetId,btn){
+  if(!url){toast('링크를 입력하세요','err');return;}
+  if(!window.TP_LIVE){toast('링크 불러오기는 실시간 모드(Supabase 연결)에서만 됩니다','err');return;}
+  const prev=btn.innerHTML;btn.innerHTML='<span class="spinner"></span>';btn.style.pointerEvents='none';
+  try{
+    const text=await window.TPDB.ai('fetch_url',{url});
+    if(!text||!String(text).trim()){toast('내용을 가져오지 못했어요','err');return;}
+    const t=String(text).trim();
+    const cur=$('#'+targetId).value.trim();
+    $('#'+targetId).value=cur?(cur+'\n\n[링크: '+url+']\n'+t):t;
+    toast('링크 내용을 불러왔어요. [저장] 후 분석하세요','ok');
+  }catch(e){toast('불러오기 실패: '+(e.message||e),'err');}
+  finally{btn.innerHTML=prev;btn.style.pointerEvents='auto';}
 }
 async function handleResumeFile(file){
   const nameEl=$('#resumeFileName');nameEl.textContent=file.name+' 처리 중… ';
