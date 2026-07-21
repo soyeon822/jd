@@ -1591,6 +1591,12 @@ async function initMypage(){
   $('#portfolioAnalyze').onclick=()=>runMyTool('pfreview',$('#portfolioAnalyze'));
   $('#portfolioUrlBtn').onclick=()=>loadFromUrl($('#portfolioUrl').value.trim(),'myPortfolio',$('#portfolioUrlBtn'));
 }
+function cleanErr(e){
+  let m=(e&&e.message)?e.message:String(e);
+  const mm=m.match(/"error"\s*:\s*"([^"]+)"/);
+  if(mm)m=mm[1];
+  return m.replace(/^Error:\s*/,'').trim();
+}
 async function loadFromUrl(url,targetId,btn){
   if(!url){toast('링크를 입력하세요','err');return;}
   if(!window.TP_LIVE){toast('링크 불러오기는 실시간 모드(Supabase 연결)에서만 됩니다','err');return;}
@@ -1602,7 +1608,7 @@ async function loadFromUrl(url,targetId,btn){
     const cur=$('#'+targetId).value.trim();
     $('#'+targetId).value=cur?(cur+'\n\n[링크: '+url+']\n'+t):t;
     toast('링크 내용을 불러왔어요. [저장] 후 분석하세요','ok');
-  }catch(e){toast('불러오기 실패: '+(e.message||e),'err');}
+  }catch(e){toast(cleanErr(e),'err');}
   finally{btn.innerHTML=prev;btn.style.pointerEvents='auto';}
 }
 async function handleDocFile(file,targetId,nameId,label){
