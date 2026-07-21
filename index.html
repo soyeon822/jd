@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TalentPulse — Job Market Intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f7f8fb; --bg-2:#eef1f6; --surface:#ffffff; --surface-2:#fbfcfe;
+  --border:#e6e9f0; --border-strong:#d5dae6;
+  --text:#0f172a; --text-2:#475569; --text-3:#94a3b8;
+  --primary:#2563eb; --primary-600:#1d4ed8; --primary-tint:#eff4ff;
+  --success:#16a34a; --warn:#d97706; --danger:#dc2626; --violet:#7c3aed; --cyan:#0891b2; --pink:#db2777;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+  --shadow:0 4px 20px -4px rgba(15,23,42,.12);
+  --shadow-lg:0 20px 50px -12px rgba(15,23,42,.22);
+  --radius:16px; --radius-sm:10px;
+  --glass:rgba(255,255,255,.72);
+}
+[data-theme="dark"]{
+  --bg:#0a0c12; --bg-2:#0f131c; --surface:#141824; --surface-2:#1a1f2e;
+  --border:#242b3d; --border-strong:#2f3852;
+  --text:#f1f5f9; --text-2:#a3adc2; --text-3:#6b7488;
+  --primary:#3b82f6; --primary-600:#2563eb; --primary-tint:#16233f;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow:0 4px 24px -4px rgba(0,0,0,.5);
+  --shadow-lg:0 24px 60px -12px rgba(0,0,0,.7);
+  --glass:rgba(20,24,36,.72);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;transition:background .3s,color .3s;line-height:1.5;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:20px}
+::-webkit-scrollbar-track{background:transparent}
+.hidden{display:none!important}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.anim{animation:fadeUp .5s cubic-bezier(.2,.7,.3,1) both}
+
+/* ---------- Top Nav ---------- */
+.nav{
+  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;
+  padding:12px 24px;background:var(--glass);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--primary),var(--violet));
+  display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-sm)}
+.brand small{font-weight:500;color:var(--text-3);font-size:11px;display:block;letter-spacing:0}
+.nav-tabs{display:flex;gap:4px;margin-left:16px;overflow-x:auto}
+.nav-tabs button{padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:.15s}
+.nav-tabs button:hover{background:var(--bg-2);color:var(--text)}
+.nav-tabs button.active{background:var(--primary-tint);color:var(--primary)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--text-2);border:1px solid var(--border);background:var(--surface);transition:.15s}
+.icon-btn:hover{background:var(--bg-2);color:var(--text);transform:translateY(-1px)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px;transition:.15s;border:1px solid transparent}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:var(--shadow-sm)}
+.btn-primary:hover{background:var(--primary-600);transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn-ghost{background:var(--surface);border-color:var(--border);color:var(--text-2)}
+.btn-ghost:hover{background:var(--bg-2);color:var(--text)}
+.container{max-width:1280px;margin:0 auto;padding:28px 24px 80px}
+
+/* ---------- Upload ---------- */
+.hero{text-align:center;padding:36px 0 20px}
+.hero .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:var(--primary-tint);color:var(--primary);font-size:13px;font-weight:600;margin-bottom:18px}
+.hero h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.hero h1 .grad{background:linear-gradient(120deg,var(--primary),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--text-2);font-size:17px;margin-top:14px;max-width:620px;margin-inline:auto}
+.dropzone{
+  margin:28px auto 0;max-width:760px;border:2px dashed var(--border-strong);border-radius:22px;
+  background:var(--surface);padding:44px 24px;text-align:center;transition:.2s;box-shadow:var(--shadow-sm)
+}
+.dropzone.drag{border-color:var(--primary);background:var(--primary-tint);transform:scale(1.01)}
+.dropzone .up-ic{width:64px;height:64px;border-radius:18px;margin:0 auto 16px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--primary),var(--violet));color:#fff;box-shadow:var(--shadow)}
+.dropzone h3{font-size:19px;font-weight:700}
+.dropzone p{color:var(--text-2);margin-top:6px;font-size:14px}
+.formats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.fmt{font-size:12px;font-weight:600;color:var(--text-3);border:1px solid var(--border);border-radius:8px;padding:4px 10px}
+.file-list{max-width:760px;margin:20px auto 0;display:flex;flex-direction:column;gap:10px}
+.file-row{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;box-shadow:var(--shadow-sm);animation:fadeUp .35s both}
+.file-ic{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--bg-2);color:var(--primary);flex-shrink:0;font-weight:700;font-size:12px}
+.file-meta{flex:1;min-width:0}
+.file-meta .nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta .sub{font-size:12px;color:var(--text-3)}
+.progress{height:6px;border-radius:6px;background:var(--bg-2);overflow:hidden;margin-top:7px}
+.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--violet));border-radius:6px;transition:width .25s}
+.status-tag{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.st-ok{background:rgba(22,163,74,.12);color:var(--success)}
+.st-fail{background:rgba(220,38,38,.12);color:var(--danger)}
+.st-dup{background:rgba(217,119,6,.12);color:var(--warn)}
+.st-run{background:var(--primary-tint);color:var(--primary)}
+.spinner{width:16px;height:16px;border:2px solid var(--border-strong);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:-3px}
+
+/* ---------- Dashboard ---------- */
+.section-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;margin:30px 4px 14px;color:var(--text)}
+.section-title .n{width:24px;height:24px;border-radius:7px;background:var(--primary-tint);color:var(--primary);display:grid;place-items:center;font-size:12px;font-weight:800}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);transition:.2s}
+.card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.kpi .lab{font-size:13px;color:var(--text-2);font-weight:600;display:flex;align-items:center;gap:7px}
+.kpi .val{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:8px}
+.kpi .val small{font-size:14px;font-weight:600;color:var(--text-3)}
+.kpi .delta{font-size:12px;font-weight:600;margin-top:6px;color:var(--success)}
+.kpi .kic{float:right;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary-tint);color:var(--primary)}
+.chart-grid{grid-template-columns:1fr 1fr}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm)}
+.chart-card h4{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.chart-card .desc{font-size:12.5px;color:var(--text-3);margin-top:2px;margin-bottom:14px}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap.tall{height:360px}
+.bars{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.bar-row{display:grid;grid-template-columns:130px 1fr 80px;align-items:center;gap:12px;font-size:13px}
+.bar-row .bn{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{height:22px;background:var(--bg-2);border-radius:8px;overflow:hidden}
+.bar-track>i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--primary),var(--violet));transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.bar-row .bv{text-align:right;color:var(--text-2);font-weight:600;font-variant-numeric:tabular-nums}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--bg-2);color:var(--text-2);border:1px solid var(--border);transition:.15s}
+.tag:hover{border-color:var(--primary);color:var(--primary)}
+.tag .c{color:var(--primary);font-weight:800;margin-left:4px}
+
+/* cloud */
+.cloud{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:center;padding:20px 0;line-height:1.2}
+.cloud span{font-weight:700;transition:.2s;cursor:default}
+.cloud span:hover{color:var(--primary);transform:scale(1.08)}
+
+/* insights */
+.insight{display:flex;gap:14px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2);animation:fadeUp .5s both}
+.insight .ic{width:38px;height:38px;flex-shrink:0;border-radius:10px;display:grid;place-items:center;background:var(--primary-tint);color:var(--primary);font-size:18px}
+.insight h5{font-size:14px;font-weight:700;margin-bottom:3px}
+.insight p{font-size:13.5px;color:var(--text-2)}
+.ai-summary{background:linear-gradient(135deg,var(--primary-tint),transparent);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.ai-summary .head{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;margin-bottom:12px}
+.ai-summary .head .badge{margin-left:auto;font-size:11px;background:var(--primary);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700}
+.ai-summary p{color:var(--text);font-size:15px;line-height:1.75}
+.typed::after{content:'▋';color:var(--primary);animation:fadeIn .6s infinite alternate}
+
+/* filters */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow-sm);position:sticky;top:66px;z-index:20}
+.search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:var(--bg-2);border-radius:10px;padding:9px 12px}
+.search input{border:none;background:none;outline:none;width:100%;color:var(--text);font-size:14px}
+select.filt{appearance:none;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:9px 32px 9px 12px;font-size:13.5px;font-weight:600;color:var(--text-2);cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+
+/* table */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);font-weight:700;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface)}
+th:hover{color:var(--primary)}
+tbody tr{transition:.12s}
+tbody tr:hover{background:var(--bg-2)}
+tbody tr:last-child td{border-bottom:none}
+.chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--primary-tint);color:var(--primary)}
+.mini-tag{font-size:11px;padding:2px 7px;border-radius:6px;background:var(--bg-2);color:var(--text-2);margin-right:4px}
+.link{color:var(--primary);font-weight:700;cursor:pointer}
+.link:hover{text-decoration:underline}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(6,10,20,.55);backdrop-filter:blur(4px);z-index:100;display:grid;place-items:center;padding:24px;animation:fadeIn .2s}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;max-width:760px;width:100%;max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg);animation:pop .25s}
+.modal-head{position:sticky;top:0;background:var(--surface);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;z-index:2}
+.modal-head h3{font-size:19px;font-weight:800}
+.modal-head .sub{color:var(--text-2);font-size:14px;margin-top:3px}
+.modal-body{padding:22px 24px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin:8px 0 20px}
+.detail-grid .f{font-size:13px}
+.detail-grid .f .k{color:var(--text-3);font-weight:600;font-size:12px}
+.detail-grid .f .v{font-weight:600;margin-top:2px}
+.subhead{font-size:13px;font-weight:800;color:var(--text);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.03em}
+.ocr-box{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--text-2);white-space:pre-wrap;max-height:220px;overflow:auto}
+
+/* resume match */
+.match-hero{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:center}
+.gauge{position:relative;width:200px;height:200px;margin:0 auto}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.gauge .center .s{font-size:46px;font-weight:800;letter-spacing:-.02em}
+.gauge .center .l{font-size:12px;color:var(--text-3);font-weight:600}
+.skill-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:20px}
+.skill-box h5{font-size:13px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.slist{display:flex;flex-direction:column;gap:7px}
+.srow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding:8px 12px;border-radius:10px;background:var(--bg-2)}
+.srow .num{width:20px;height:20px;border-radius:6px;background:var(--primary);color:#fff;font-size:11px;display:grid;place-items:center;font-weight:800}
+.plan-step{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.plan-step:last-child{border:none}
+.plan-step .pn{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:linear-gradient(135deg,var(--primary),var(--violet));color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--bg-2);color:var(--text);font-size:14px;font-family:inherit;resize:vertical;outline:none}
+.textarea:focus{border-color:var(--primary)}
+
+/* toast */
+.toasts{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:10px}
+.toast{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:12px;padding:13px 18px;box-shadow:var(--shadow-lg);font-size:14px;font-weight:600;animation:fadeUp .3s;min-width:240px}
+.toast.ok{border-left-color:var(--success)}
+.toast.err{border-left-color:var(--danger)}
+
+/* skeleton */
+.sk{background:linear-gradient(90deg,var(--bg-2) 25%,var(--border) 37%,var(--bg-2) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite;border-radius:10px}
+.empty{text-align:center;padding:60px 20px;color:var(--text-3)}
+.empty .ic{width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:var(--bg-2);display:grid;place-items:center;color:var(--text-3);font-size:26px}
+
+/* region map */
+.map-row{display:grid;grid-template-columns:110px 1fr 46px;gap:12px;align-items:center;font-size:13px;margin-bottom:8px}
+.map-row .rn{font-weight:600}
+.map-row .bv{text-align:right;color:var(--text-2);font-weight:600}
+.compare-pick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.pick{font-size:13px;font-weight:600;padding:7px 13px;border-radius:10px;border:1px solid var(--border);background:var(--surface);transition:.15s}
+.pick.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* history drawer */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(6,10,20,.45);backdrop-filter:blur(3px);z-index:90;opacity:0;pointer-events:none;transition:.25s}
+.drawer-backdrop.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;left:0;height:100%;width:340px;max-width:86vw;background:var(--surface);border-right:1px solid var(--border);
+  z-index:95;transform:translateX(-104%);transition:transform .3s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.drawer-head .t{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px}
+.drawer-head .t .x{margin-left:auto;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--text-3)}
+.drawer-head .t .x:hover{background:var(--bg-2);color:var(--text)}
+.newbtn{margin-top:12px;width:100%;justify-content:center;background:var(--primary);color:#fff;padding:10px;border-radius:10px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;transition:.15s}
+.newbtn:hover{background:var(--primary-600)}
+.hist-list{flex:1;overflow:auto;padding:10px}
+.hist-group-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);padding:12px 8px 6px}
+.hist-item{position:relative;display:flex;gap:11px;padding:11px 12px;border-radius:12px;cursor:pointer;transition:.12s;border:1px solid transparent}
+.hist-item:hover{background:var(--bg-2);border-color:var(--border)}
+.hist-item.active{background:var(--primary-tint);border-color:var(--primary)}
+.hist-item .hic{width:34px;height:34px;flex-shrink:0;border-radius:9px;display:grid;place-items:center;font-size:16px;background:var(--bg-2)}
+.hist-item .hbody{min-width:0;flex:1}
+.hist-item .htitle{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-item .hmeta{font-size:11.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-item .hdel{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:7px;display:none;place-items:center;color:var(--text-3);background:var(--surface)}
+.hist-item:hover .hdel{display:grid}
+.hist-item .hdel:hover{color:var(--danger);background:var(--bg-2)}
+.drawer-foot{padding:12px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-3)}
+.drawer-foot button{color:var(--danger);font-weight:700;font-size:12px}
+.hist-empty{text-align:center;color:var(--text-3);padding:40px 20px;font-size:13px}
+.hist-empty .ic{font-size:34px;margin-bottom:10px}
+
+.two{grid-template-columns:1fr 1fr}
+.three{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.chart-grid,.two,.three,.detail-grid,.skill-cols,.match-hero{grid-template-columns:1fr}.nav-tabs{display:none}}
+@media(max-width:560px){.bar-row{grid-template-columns:90px 1fr 54px}.container{padding:20px 14px 60px}.kpis{grid-template-columns:1fr 1fr}}
+.mobile-tabs{display:none}
+@media(max-width:900px){.mobile-tabs{display:flex}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="brand">
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+    </div>
+    <div>TalentPulse<small>Job Market Intelligence</small></div>
+  </div>
+  <div class="nav-tabs" id="navTabs">
+    <button data-view="upload" class="active">업로드</button>
+    <button data-view="dashboard">대시보드</button>
+    <button data-view="postings">공고 목록</button>
+    <button data-view="compare">기업 비교</button>
+    <button data-view="resume">이력서 매칭</button>
+  </div>
+  <div class="nav-right">
+    <button class="icon-btn" id="historyBtn" title="분석 기록" style="position:relative;overflow:visible">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v6h6"/><path d="M3.5 9a9 9 0 1 0 2.5-4.9L3 9"/><path d="M12 8v4l3 2"/></svg>
+      <span id="histCount" style="position:absolute;transform:translate(14px,-14px);background:var(--primary);color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:9px;display:none;place-items:center;padding:0 3px"></span>
+    </button>
+    <select class="filt mobile-tabs" id="mobileNav">
+      <option value="upload">업로드</option><option value="dashboard">대시보드</option>
+      <option value="postings">공고 목록</option><option value="compare">기업 비교</option><option value="resume">이력서 매칭</option>
+    </select>
+    <button class="icon-btn" id="themeBtn" title="다크모드">
+      <svg id="themeIc" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+    </button>
+    <button class="btn btn-ghost" id="exportBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      Export
+    </button>
+  </div>
+</nav>
+
+<!-- ========== UPLOAD VIEW ========== -->
+<section id="view-upload" class="view">
+  <div class="container">
+    <div class="hero">
+      <span class="pill">✦ AI 채용시장 분석 엔진 v2.0</span>
+      <h1>채용공고를 올리면<br><span class="grad">채용시장 전체가 보입니다</span></h1>
+      <p>PDF·이미지 채용공고를 최소 3개, 최대 100개까지 업로드하세요. OCR·NER·임베딩·클러스터링으로 기술 트렌드, 연봉, 지역, 인사이트를 자동 시각화합니다.</p>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="up-ic">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      </div>
+      <h3>파일을 여기에 드래그하거나 클릭해서 업로드</h3>
+      <p>여러 개 동시 업로드 · Drag &amp; Drop 지원 · 자동 OCR &amp; 중복 제거</p>
+      <div class="formats">
+        <span class="fmt">PDF</span><span class="fmt">JPG</span><span class="fmt">JPEG</span><span class="fmt">PNG</span><span class="fmt">WEBP</span>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="pickBtn">파일 선택</button>
+        <button class="btn btn-ghost" id="sampleBtn">샘플 데이터로 체험하기 →</button>
+      </div>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div id="analyzeWrap" class="hidden" style="max-width:760px;margin:20px auto 0;text-align:center">
+      <button class="btn btn-primary" id="analyzeBtn" style="padding:13px 28px;font-size:15px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg>
+        AI 분석 시작
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== DASHBOARD VIEW ========== -->
+<section id="view-dashboard" class="view hidden">
+  <div class="container" id="dashContainer"></div>
+</section>
+
+<!-- ========== POSTINGS VIEW ========== -->
+<section id="view-postings" class="view hidden">
+  <div class="container">
+    <h1 style="font-size:24px;font-weight:800;margin-bottom:6px">공고 목록</h1>
+    <p style="color:var(--text-2);margin-bottom:18px">전체 검색 · 다중 필터 · 정렬 · 상세보기</p>
+    <div class="toolbar" id="toolbar">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input id="searchInput" placeholder="회사, 직무, 기술스택, 키워드 검색…" />
+      </div>
+      <select class="filt" id="f-role"></select>
+      <select class="filt" id="f-region"></select>
+      <select class="filt" id="f-exp"></select>
+      <select class="filt" id="f-size"></select>
+      <select class="filt" id="f-industry"></select>
+      <select class="filt" id="f-stack"></select>
+      <button class="btn btn-ghost" id="resetFilt">초기화</button>
+    </div>
+    <div style="font-size:13px;color:var(--text-3);margin:14px 4px 10px" id="resultCount"></div>
+    <div class="tbl-wrap">
+      <table id="postTable">
+        <thead><tr>
+          <th data-sort="company">회사</th><th data-sort="role">직무</th><th data-sort="region">지역</th>
+          <th data-sort="exp">경력</th><th data-sort="salaryMax">연봉(최대)</th><th data-sort="size">규모</th>
+          <th data-sort="industry">산업군</th><th>기술스택</th><th></th>
+        </tr></thead>
+        <tbody id="postBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ========== COMPARE VIEW ========== -->
+<section id="view-compare" class="view hidden">
+  <div class="container">
+    <h1 style="font-size:24px;font-weight:800;margin-bottom:6px">기업 비교</h1>
+    <p style="color:var(--text-2);margin-bottom:18px">비교할 기업을 선택하면 조건을 나란히 비교합니다 (최대 4개)</p>
+    <div class="compare-pick" id="comparePick"></div>
+    <div class="tbl-wrap" id="compareTableWrap"></div>
+  </div>
+</section>
+
+<!-- ========== RESUME VIEW ========== -->
+<section id="view-resume" class="view hidden">
+  <div class="container">
+    <h1 style="font-size:24px;font-weight:800;margin-bottom:6px">이력서 매칭 &amp; Gap 분석</h1>
+    <p style="color:var(--text-2);margin-bottom:18px">이력서를 붙여넣으면 채용공고들과 비교해 Match Score, 부족한 기술, 학습 우선순위를 제공합니다.</p>
+    <div class="card" style="max-width:760px">
+      <textarea class="textarea" id="resumeText" placeholder="이력서 내용 또는 보유 기술을 붙여넣으세요.  예) Python, React, TypeScript, MySQL 3년차 백엔드 개발자…"></textarea>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="matchBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6L18.4 22 12 17.3 5.6 22 8 14 2 9.4h7.6z"/></svg>
+          매칭 분석 실행
+        </button>
+        <button class="btn btn-ghost" id="sampleResume">샘플 이력서 채우기</button>
+      </div>
+    </div>
+    <div id="matchResult" style="margin-top:24px"></div>
+  </div>
+</section>
+
+<!-- HISTORY DRAWER -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="t">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v6h6"/><path d="M3.5 9a9 9 0 1 0 2.5-4.9L3 9"/><path d="M12 8v4l3 2"/></svg>
+      분석 기록
+      <button class="x" id="drawerClose">✕</button>
+    </div>
+    <button class="newbtn" id="newAnalysisBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      새 분석 시작
+    </button>
+  </div>
+  <div class="hist-list" id="histList"></div>
+  <div class="drawer-foot">
+    <span id="histFootCount">0개 기록</span>
+    <button id="clearHistBtn">전체 삭제</button>
+  </div>
+</aside>
+
+<div class="toasts" id="toasts"></div>
+<div id="modalRoot"></div>
+<input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple style="display:none" />
+
+<!-- 설정 & 데이터 레이어 (Supabase 또는 데모 자동 전환) -->
+<script src="config.js"></script>
+<script src="app-data.js"></script>
+
+<script>
+/* ============================================================
+   TalentPulse — Job Market Intelligence app
+   Supabase 연결 시 실시간 저장 + 실제 OCR/AI, 미설정 시 데모 모드.
+============================================================ */
+
+const SAMPLE_FILES = [
+  "네이버_백엔드_개발자.pdf","카카오_프론트엔드.png","토스_서버개발자.pdf","쿠팡_데이터엔지니어.jpg",
+  "당근마켓_안드로이드.pdf","배달의민족_백엔드.png","라인_ML엔지니어.pdf","무신사_프론트엔드.jpeg",
+  "직방_DevOps.pdf","야놀자_백엔드.png","리디_풀스택.pdf","크래프톤_게임서버.pdf",
+  "센드버드_플랫폼엔지니어.png","뱅크샐러드_iOS.pdf","spoon_백엔드(중복).pdf","비바리퍼블리카_데이터.webp"
+];
+
+const POSTINGS = [
+  {id:1,company:"네이버",role:"백엔드 개발자",region:"경기 성남",exp:3,expLabel:"경력 3년+",edu:"학사",employ:"정규직",salaryMin:6000,salaryMax:9000,industry:"IT플랫폼",size:"대기업",work:"Hybrid",
+   stack:["Java","Spring Boot","Kubernetes","MySQL","Kafka","Redis"],lang:["Java","Kotlin"],framework:["Spring Boot","JPA"],cloud:["AWS"],db:["MySQL","Redis"],tools:["Jira","Confluence","Slack"],
+   soft:["협업","문제해결","커뮤니케이션"],welfare:["점심 제공","건강검진","교육비","스톡옵션"],
+   certs:["정보처리기사"],pref:["대규모 트래픽 경험","MSA 설계 경험","오픈소스 기여"],req:["Java 3년 이상","RDBMS 이해","REST API 설계"],
+   keywords:["MSA","대용량","분산시스템","트래픽"]},
+  {id:2,company:"카카오",role:"프론트엔드 개발자",region:"제주",exp:2,expLabel:"경력 2년+",edu:"무관",employ:"정규직",salaryMin:5500,salaryMax:8000,industry:"IT플랫폼",size:"대기업",work:"재택",
+   stack:["React","TypeScript","Next.js","GraphQL","Webpack"],lang:["JavaScript","TypeScript"],framework:["React","Next.js"],cloud:["AWS"],db:["MongoDB"],tools:["Jira","Slack","Figma"],
+   soft:["커뮤니케이션","협업","문서화"],welfare:["점심 제공","재택","맥북 지급","건강검진"],
+   certs:[],pref:["디자인 시스템 경험","웹 성능 최적화","사이드 프로젝트"],req:["React 2년 이상","TypeScript 능숙","반응형 웹"],
+   keywords:["디자인시스템","성능최적화","SPA"]},
+  {id:3,company:"토스",role:"서버 개발자",region:"서울 강남",exp:3,expLabel:"경력 3년+",edu:"무관",employ:"정규직",salaryMin:7000,salaryMax:12000,industry:"핀테크",size:"중견기업",work:"출근",
+   stack:["Kotlin","Spring Boot","Kubernetes","PostgreSQL","Kafka","Docker"],lang:["Kotlin","Java"],framework:["Spring Boot"],cloud:["AWS"],db:["PostgreSQL","Redis"],tools:["Slack","Notion","Jira"],
+   soft:["주도성","문제해결","협업"],welfare:["점심 제공","맥북 지급","스톡옵션","유연근무"],
+   certs:[],pref:["금융 도메인 경험","Kotlin 경험","대규모 트래픽"],req:["백엔드 3년 이상","JVM 언어","분산 시스템 이해"],
+   keywords:["금융","실시간","이벤트드리븐","MSA"]},
+  {id:4,company:"쿠팡",role:"데이터 엔지니어",region:"서울 송파",exp:5,expLabel:"경력 5년+",edu:"학사",employ:"정규직",salaryMin:8000,salaryMax:14000,industry:"커머스",size:"대기업",work:"Hybrid",
+   stack:["Python","Spark","Airflow","AWS","Kafka","Snowflake"],lang:["Python","Scala"],framework:["Spark","Airflow"],cloud:["AWS"],db:["Snowflake","DynamoDB"],tools:["Jira","Slack"],
+   soft:["문제해결","협업","주도성"],welfare:["건강검진","교육비","스톡옵션"],
+   certs:["AWS SA"],pref:["대규모 데이터 파이프라인","실시간 스트리밍","MLOps"],req:["데이터 엔지니어 5년","Python/Scala","분산 처리"],
+   keywords:["데이터파이프라인","스트리밍","빅데이터","ETL"]},
+  {id:5,company:"당근마켓",role:"안드로이드 개발자",region:"서울 서초",exp:3,expLabel:"경력 3년+",edu:"무관",employ:"정규직",salaryMin:6000,salaryMax:9500,industry:"IT플랫폼",size:"스타트업",work:"Hybrid",
+   stack:["Kotlin","Jetpack Compose","Coroutines","Firebase"],lang:["Kotlin"],framework:["Jetpack Compose"],cloud:["GCP"],db:["Firebase","SQLite"],tools:["Slack","Notion","Figma"],
+   soft:["협업","주도성","커뮤니케이션"],welfare:["점심 제공","재택","맥북 지급","유연근무"],
+   certs:[],pref:["Compose 경험","오픈소스 기여","사이드 프로젝트"],req:["안드로이드 3년","Kotlin","MVVM"],
+   keywords:["Compose","모바일","MVVM"]},
+  {id:6,company:"우아한형제들",role:"백엔드 개발자",region:"서울 송파",exp:4,expLabel:"경력 4년+",edu:"무관",employ:"정규직",salaryMin:6500,salaryMax:10000,industry:"커머스",size:"중견기업",work:"Hybrid",
+   stack:["Java","Spring Boot","MySQL","Kafka","Redis","Kubernetes"],lang:["Java","Kotlin"],framework:["Spring Boot","JPA"],cloud:["AWS"],db:["MySQL","Redis"],tools:["Jira","Confluence","Slack"],
+   soft:["협업","문서화","문제해결"],welfare:["점심 제공","건강검진","교육비","유연근무"],
+   certs:["정보처리기사"],pref:["대규모 트래픽","이벤트 기반 아키텍처","테스트 코드 작성"],req:["Java 4년","Spring","RDBMS"],
+   keywords:["대용량","이벤트","도메인주도설계","MSA"]},
+  {id:7,company:"라인",role:"ML 엔지니어",region:"서울 강남",exp:5,expLabel:"경력 5년+",edu:"석사",employ:"정규직",salaryMin:8000,salaryMax:15000,industry:"AI",size:"대기업",work:"Hybrid",
+   stack:["Python","PyTorch","TensorFlow","Kubernetes","Spark","MLflow"],lang:["Python"],framework:["PyTorch","TensorFlow"],cloud:["AWS","GCP"],db:["PostgreSQL"],tools:["Slack","Jira","Notion"],
+   soft:["문제해결","주도성","문서화"],welfare:["건강검진","교육비","스톡옵션","맥북 지급"],
+   certs:[],pref:["논문 게재","LLM 파인튜닝","추천 시스템"],req:["ML 5년","Python","딥러닝 프레임워크"],
+   keywords:["딥러닝","LLM","추천시스템","MLOps"]},
+  {id:8,company:"무신사",role:"프론트엔드 개발자",region:"서울 성동",exp:2,expLabel:"경력 2년+",edu:"무관",employ:"정규직",salaryMin:5000,salaryMax:8000,industry:"커머스",size:"중견기업",work:"출근",
+   stack:["React","TypeScript","Next.js","Redux","Styled-Components"],lang:["JavaScript","TypeScript"],framework:["React","Next.js"],cloud:["AWS"],db:["MySQL"],tools:["Jira","Slack","Figma"],
+   soft:["커뮤니케이션","협업"],welfare:["점심 제공","건강검진","교육비"],
+   certs:[],pref:["커머스 경험","성능 최적화","디자인 시스템"],req:["React 2년","TypeScript","반응형"],
+   keywords:["커머스","SPA","성능최적화"]},
+  {id:9,company:"직방",role:"DevOps 엔지니어",region:"서울 강남",exp:4,expLabel:"경력 4년+",edu:"무관",employ:"정규직",salaryMin:7000,salaryMax:11000,industry:"프롭테크",size:"스타트업",work:"재택",
+   stack:["Kubernetes","Terraform","AWS","Docker","Prometheus","Python"],lang:["Python","Go"],framework:["Terraform"],cloud:["AWS"],db:["PostgreSQL","Redis"],tools:["Slack","Notion","Jira"],
+   soft:["주도성","문제해결","문서화"],welfare:["재택","맥북 지급","유연근무","교육비"],
+   certs:["AWS SA","CKA"],pref:["IaC 경험","모니터링 구축","비용 최적화"],req:["DevOps 4년","Kubernetes","AWS"],
+   keywords:["IaC","모니터링","클라우드","자동화"]},
+  {id:10,company:"야놀자",role:"백엔드 개발자",region:"서울 강남",exp:3,expLabel:"경력 3년+",edu:"학사",employ:"정규직",salaryMin:6000,salaryMax:9500,industry:"커머스",size:"중견기업",work:"Hybrid",
+   stack:["Java","Spring Boot","MySQL","Redis","Docker","AWS"],lang:["Java"],framework:["Spring Boot","JPA"],cloud:["AWS"],db:["MySQL","Redis"],tools:["Jira","Slack","Confluence"],
+   soft:["협업","커뮤니케이션","문제해결"],welfare:["점심 제공","건강검진","유연근무"],
+   certs:["정보처리기사"],pref:["여행 도메인","대규모 트래픽","테스트 코드"],req:["Java 3년","Spring","RDBMS"],
+   keywords:["여행","대용량","API"]},
+  {id:11,company:"리디",role:"풀스택 개발자",region:"서울 강남",exp:3,expLabel:"경력 3년+",edu:"무관",employ:"정규직",salaryMin:6000,salaryMax:9000,industry:"콘텐츠",size:"스타트업",work:"재택",
+   stack:["TypeScript","React","Node.js","PostgreSQL","AWS","Docker"],lang:["TypeScript","JavaScript"],framework:["React","Node.js","NestJS"],cloud:["AWS"],db:["PostgreSQL","Redis"],tools:["Slack","Notion","Figma"],
+   soft:["주도성","협업","문서화"],welfare:["재택","맥북 지급","유연근무","교육비"],
+   certs:[],pref:["풀스택 경험","콘텐츠 서비스","사이드 프로젝트"],req:["웹 개발 3년","TypeScript","React/Node"],
+   keywords:["풀스택","콘텐츠","TypeScript"]},
+  {id:12,company:"크래프톤",role:"게임 서버 개발자",region:"서울 강남",exp:5,expLabel:"경력 5년+",edu:"학사",employ:"정규직",salaryMin:7000,salaryMax:13000,industry:"게임",size:"대기업",work:"출근",
+   stack:["C++","Go","Redis","Kubernetes","AWS","gRPC"],lang:["C++","Go"],framework:["gRPC"],cloud:["AWS"],db:["Redis","MySQL"],tools:["Jira","Confluence","Slack"],
+   soft:["문제해결","주도성","협업"],welfare:["점심 제공","건강검진","스톡옵션","교육비"],
+   certs:[],pref:["게임 서버 경험","실시간 통신","대규모 동접"],req:["서버 개발 5년","C++/Go","네트워크 프로그래밍"],
+   keywords:["게임서버","실시간","동접","네트워크"]},
+  {id:13,company:"센드버드",role:"플랫폼 엔지니어",region:"서울 강남",exp:5,expLabel:"경력 5년+",edu:"학사",employ:"정규직",salaryMin:8000,salaryMax:14000,industry:"AI",size:"외국계",work:"Hybrid",
+   stack:["Go","Kubernetes","gRPC","Kafka","AWS","Terraform"],lang:["Go","Python"],framework:["gRPC","Terraform"],cloud:["AWS","GCP"],db:["PostgreSQL","Cassandra"],tools:["Slack","Notion","Jira"],
+   soft:["문서화","커뮤니케이션","주도성"],welfare:["재택","맥북 지급","스톡옵션","유연근무"],
+   certs:["CKA"],pref:["글로벌 서비스","영어 커뮤니케이션","분산 시스템"],req:["백엔드 5년","Go","Kubernetes"],
+   keywords:["글로벌","분산시스템","실시간","챗API"]},
+  {id:14,company:"뱅크샐러드",role:"iOS 개발자",region:"서울 강남",exp:3,expLabel:"경력 3년+",edu:"무관",employ:"정규직",salaryMin:6000,salaryMax:9500,industry:"핀테크",size:"스타트업",work:"Hybrid",
+   stack:["Swift","SwiftUI","Combine","Firebase"],lang:["Swift"],framework:["SwiftUI"],cloud:["GCP"],db:["Firebase","SQLite"],tools:["Slack","Notion","Figma"],
+   soft:["협업","주도성","커뮤니케이션"],welfare:["점심 제공","재택","맥북 지급","유연근무"],
+   certs:[],pref:["SwiftUI 경험","금융 도메인","사이드 프로젝트"],req:["iOS 3년","Swift","MVVM"],
+   keywords:["금융","모바일","SwiftUI"]},
+  {id:15,company:"비바리퍼블리카",role:"데이터 분석가",region:"서울 강남",exp:1,expLabel:"경력 1년+",edu:"학사",employ:"정규직",salaryMin:5000,salaryMax:7500,industry:"핀테크",size:"중견기업",work:"출근",
+   stack:["Python","SQL","Tableau","Airflow","BigQuery"],lang:["Python","SQL"],framework:["Airflow"],cloud:["GCP"],db:["BigQuery","MySQL"],tools:["Slack","Notion","Jira"],
+   soft:["문제해결","커뮤니케이션","문서화"],welfare:["점심 제공","건강검진","교육비"],
+   certs:["ADsP"],pref:["A/B 테스트 경험","대시보드 구축","금융 데이터"],req:["데이터 분석 1년","SQL","통계 이해"],
+   keywords:["데이터분석","A/B테스트","지표"]},
+  {id:16,company:"라인",role:"신입 백엔드 개발자",region:"서울 강남",exp:0,expLabel:"신입",edu:"학사",employ:"정규직",salaryMin:4500,salaryMax:6000,industry:"IT플랫폼",size:"대기업",work:"Hybrid",
+   stack:["Java","Spring Boot","MySQL","Git"],lang:["Java"],framework:["Spring Boot"],cloud:["AWS"],db:["MySQL"],tools:["Jira","Slack"],
+   soft:["협업","커뮤니케이션","주도성"],welfare:["점심 제공","건강검진","교육비","맥북 지급"],
+   certs:["정보처리기사"],pref:["사이드 프로젝트","오픈소스 기여","알고리즘 대회"],req:["CS 전공 지식","자료구조/알고리즘","Java 기초"],
+   keywords:["신입","CS기초","알고리즘"]}
+];
+
+const OCR_STATUS = ["ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","dup","fail"];
+
+const STATE = { analyzed:false, filtered:[...POSTINGS], sort:{key:null,dir:1}, compare:[], charts:{}, analyzeSeconds:0 };
+
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const uniq=a=>[...new Set(a)];
+function countBy(list, fn){const m={};list.forEach(p=>{const v=fn(p);(Array.isArray(v)?v:[v]).forEach(x=>{if(x==null||x==="")return;m[x]=(m[x]||0)+1});});return m;}
+function sortedEntries(obj){return Object.entries(obj).sort((a,b)=>b[1]-a[1]);}
+function median(arr){const s=[...arr].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function fmtMoney(v){return v.toLocaleString('ko-KR')+"만";}
+function toast(msg,type=""){const t=document.createElement('div');t.className='toast '+type;t.innerHTML=`<span>${type==='ok'?'✅':type==='err'?'⚠️':'✦'}</span><span>${msg}</span>`;$('#toasts').appendChild(t);setTimeout(()=>{t.style.opacity=0;t.style.transform='translateX(20px)';setTimeout(()=>t.remove(),300);},3200);}
+
+const PAL=['#2563eb','#7c3aed','#0891b2','#db2777','#16a34a','#d97706','#dc2626','#0ea5e9','#8b5cf6','#14b8a6','#f43f5e','#f59e0b'];
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+/* THEME */
+$('#themeBtn').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  $('#themeIc').innerHTML = next==='dark'
+    ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>'
+    : '<path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/>';
+  if(STATE.analyzed) rerenderCharts();
+};
+
+/* NAV */
+function switchView(v){
+  $$('.view').forEach(el=>el.classList.add('hidden'));
+  $('#view-'+v).classList.remove('hidden');
+  $$('#navTabs button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  $('#mobileNav').value=v;
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(v!=='upload'&&!STATE.analyzed){$$('.view').forEach(el=>el.classList.add('hidden'));$('#view-upload').classList.remove('hidden');toast('먼저 채용공고를 분석해주세요','err');}
+}
+$$('#navTabs button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+$('#mobileNav').onchange=e=>switchView(e.target.value);
+
+/* UPLOAD */
+const dz=$('#dropzone');
+let LIVE_FILES=null;   // 실시간 모드에서 사용자가 올린 실제 파일 목록
+['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('drag');}));
+['dragleave'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('drag');}));
+dz.addEventListener('drop',ev=>{
+  ev.preventDefault();dz.classList.remove('drag');
+  const files=[...(ev.dataTransfer?.files||[])];
+  if(window.TP_LIVE && files.length) handleRealFiles(files);
+  else simulateUpload();
+});
+$('#pickBtn').onclick=()=>{ if(window.TP_LIVE) $('#fileInput').click(); else simulateUpload(); };
+$('#sampleBtn').onclick=()=>{ LIVE_FILES=null; simulateUpload(); };
+$('#fileInput').onchange=e=>{ const f=[...e.target.files]; if(f.length) handleRealFiles(f); };
+
+/* 실시간 모드: 실제 파일을 화면에 표시하고 준비 */
+async function handleRealFiles(files){
+  if(files.length<1){toast('파일을 1개 이상 선택하세요','err');return;}
+  if(files.length>100){toast('최대 100개까지 업로드 가능합니다','err');files=files.slice(0,100);}
+  LIVE_FILES=files;
+  const list=$('#fileList');list.innerHTML='';$('#analyzeWrap').classList.add('hidden');
+  files.forEach((f,i)=>{
+    const row=document.createElement('div');row.className='file-row';row.style.animationDelay=(i*40)+'ms';row.id='frow'+i;
+    row.innerHTML=`<div class="file-ic">${f.name.split('.').pop().toUpperCase()}</div>
+      <div class="file-meta"><div class="nm">${f.name}</div><div class="sub">${(f.size/1048576).toFixed(1)} MB</div>
+      <div class="progress"><i style="width:100%"></i></div></div>
+      <div class="status-tag st-ok">업로드됨</div>`;
+    list.appendChild(row);
+  });
+  $('#analyzeWrap').classList.remove('hidden');
+  toast(`${files.length}개 파일 준비 완료 · AI 분석을 시작하세요`,'ok');
+}
+
+/* 이미지 → dataURL, PDF → 텍스트 추출 */
+function fileToDataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
+async function pdfToText(file){
+  try{
+    const pdfjs=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+    const buf=await file.arrayBuffer();
+    const doc=await pdfjs.getDocument({data:buf}).promise;
+    let txt='';
+    for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const c=await pg.getTextContent();txt+=c.items.map(i=>i.str).join(' ')+'\n';}
+    return txt;
+  }catch(e){console.warn('PDF 추출 실패',e);return '';}
+}
+
+/* 필드 안전 정규화 (LLM 결과 → 앱 데이터 형태) */
+function arr(v){return Array.isArray(v)?v:(v?[v]:[]);}
+function normalizePosting(d,id){
+  return {id,company:d.company||'미상',role:d.role||'미상',region:d.region||'미상',
+    exp:Number(d.exp)||0,expLabel:d.expLabel||(Number(d.exp)?`경력 ${d.exp}년+`:'신입'),
+    edu:d.edu||'무관',employ:d.employ||'정규직',salaryMin:Number(d.salaryMin)||0,salaryMax:Number(d.salaryMax)||0,
+    industry:d.industry||'기타',size:d.size||'미상',work:d.work||'출근',
+    stack:arr(d.stack),lang:arr(d.lang),framework:arr(d.framework),cloud:arr(d.cloud),db:arr(d.db),
+    tools:arr(d.tools),soft:arr(d.soft),welfare:arr(d.welfare),certs:arr(d.certs),
+    pref:arr(d.pref),req:arr(d.req),keywords:arr(d.keywords)};
+}
+
+/* 실시간 분석 실행 */
+async function runLiveAnalysis(){
+  const btn=$('#analyzeBtn');btn.innerHTML='<span class="spinner"></span> 업로드 & AI 분석 중…';btn.style.pointerEvents='none';
+  const t0=performance.now();
+  try{
+    // 1) 파일 → payload (이미지 dataURL / PDF 텍스트) + Storage 업로드(선택)
+    const payload=[];const saveRows=[];
+    for(const f of LIVE_FILES){
+      let path=null;try{path=await window.TPDB.uploadFile(f);}catch(e){console.warn('스토리지 업로드 생략',e);}
+      const isPdf=/\.pdf$/i.test(f.name);
+      if(isPdf){const text=await pdfToText(f);payload.push({name:f.name,text});}
+      else{const dataUrl=await fileToDataUrl(f);payload.push({name:f.name,dataUrl});}
+      saveRows.push({file_name:f.name,file_path:path});
+    }
+    // 2) Edge Function 호출 → 구조화 추출
+    const results=await window.TPDB.analyzeFiles(payload);
+    // 3) 중복 제거 + POSTINGS 구성
+    const seen=new Set();POSTINGS.length=0;let okc=0;
+    results.forEach((r,i)=>{
+      if(r.ocr_status!=='ok'||!r.data){return;}
+      const key=(r.data.company||'')+'|'+(r.data.role||'');
+      if(seen.has(key)){return;}seen.add(key);
+      const np=normalizePosting(r.data,POSTINGS.length+1);
+      np.file_name=r.file_name;np.ocr_status='ok';np.data=r.data;
+      POSTINGS.push(np);okc++;
+    });
+    if(!POSTINGS.length)throw new Error('추출된 공고가 없습니다. 파일을 확인하세요.');
+    // 4) 시장 요약/인사이트
+    try{const s=await window.TPDB.marketSummary(POSTINGS.map(p=>({company:p.company,role:p.role,stack:p.stack,cloud:p.cloud,exp:p.exp,edu:p.edu,salaryMax:p.salaryMax,pref:p.pref})));
+      if(s.summary)AI_SUMMARY=s.summary;
+      if(s.insights&&s.insights.length)AI_INSIGHTS=s.insights.map(x=>[x.icon||'✦',x.title||'',x.body||'']);
+    }catch(e){console.warn('요약 생성 생략',e);}
+    // 5) 대시보드 + 기록 저장(DB)
+    STATE.analyzed=true;STATE.analyzeSeconds=(performance.now()-t0)/1000;
+    buildDashboard();buildFilters();renderTable();buildComparePicker();
+    const comp=uniq(POSTINGS.map(p=>p.company)).length;
+    await addHistory({type:'analysis',title:`채용시장 분석 · ${POSTINGS.length}개 공고`,
+      meta:`${comp}개 기업 · 성공 ${okc} · ${STATE.analyzeSeconds.toFixed(1)}초`,
+      seconds:STATE.analyzeSeconds,fileCount:LIVE_FILES.length,okCount:okc,companyCount:comp,
+      summary:AI_SUMMARY,insights:AI_INSIGHTS.map(x=>({icon:x[0],title:x[1],body:x[2]})),
+      _postings:POSTINGS.map(p=>({file_name:p.file_name,ocr_status:'ok',data:p.data}))});
+    btn.innerHTML='✓ 분석 완료';btn.style.pointerEvents='auto';
+    switchView('dashboard');
+    toast(`${POSTINGS.length}개 공고 실시간 분석 완료 · DB 저장됨`,'ok');
+  }catch(e){
+    console.error(e);
+    btn.innerHTML='AI 분석 시작';btn.style.pointerEvents='auto';
+    toast('분석 실패: '+(e.message||e),'err');
+  }
+}
+
+function fileExtIcon(name){return name.split('.').pop().toUpperCase();}
+function simulateUpload(){
+  const list=$('#fileList');list.innerHTML='';
+  $('#analyzeWrap').classList.add('hidden');
+  SAMPLE_FILES.forEach((f,i)=>{
+    const row=document.createElement('div');row.className='file-row';row.style.animationDelay=(i*50)+'ms';
+    row.innerHTML=`
+      <div class="file-ic">${fileExtIcon(f)}</div>
+      <div class="file-meta">
+        <div class="nm">${f}</div>
+        <div class="sub">${(Math.random()*2+0.3).toFixed(1)} MB</div>
+        <div class="progress"><i></i></div>
+      </div>
+      <div class="status-tag st-run"><span class="spinner"></span> OCR</div>`;
+    list.appendChild(row);
+    let p=0;const bar=row.querySelector('.progress>i');const tag=row.querySelector('.status-tag');
+    const iv=setInterval(()=>{
+      p+=Math.random()*22+8;
+      if(p>=100){p=100;clearInterval(iv);
+        const st=OCR_STATUS[i];
+        if(st==='ok'){tag.className='status-tag st-ok';tag.textContent='OCR 성공';}
+        else if(st==='dup'){tag.className='status-tag st-dup';tag.textContent='중복 제거됨';}
+        else{tag.className='status-tag st-fail';tag.textContent='OCR 실패';}
+        if(i===SAMPLE_FILES.length-1){
+          const ok=OCR_STATUS.filter(s=>s==='ok').length;
+          setTimeout(()=>{$('#analyzeWrap').classList.remove('hidden');
+            toast(`${SAMPLE_FILES.length}개 파일 처리 완료 · 성공 ${ok} · 중복 1 · 실패 1`,'ok');},300);
+        }
+      }
+      bar.style.width=Math.min(p,100)+'%';
+    },160+Math.random()*120);
+  });
+}
+
+$('#analyzeBtn').onclick=()=>{
+  if(window.TP_LIVE && LIVE_FILES && LIVE_FILES.length){ return runLiveAnalysis(); }
+  const btn=$('#analyzeBtn');btn.innerHTML='<span class="spinner"></span> AI 분석 중…';btn.style.pointerEvents='none';
+  setTimeout(()=>{
+    STATE.analyzed=true;
+    STATE.analyzeSeconds=(2.4+Math.random()*1.5);
+    buildDashboard();buildFilters();renderTable();buildComparePicker();
+    btn.innerHTML='✓ 분석 완료 — 대시보드로 이동';btn.style.pointerEvents='auto';
+    const ok=OCR_STATUS.filter(s=>s==='ok').length;
+    const comp=uniq(POSTINGS.map(p=>p.company)).length;
+    addHistory({type:'analysis',title:`채용시장 분석 · ${POSTINGS.length}개 공고`,
+      meta:`${comp}개 기업 · 성공 ${ok} · ${STATE.analyzeSeconds.toFixed(1)}초`,seconds:STATE.analyzeSeconds});
+    switchView('dashboard');
+    toast('16개 공고 분석 완료! 대시보드가 생성되었습니다','ok');
+  },2200);
+};
+
+/* EXPORT */
+$('#exportBtn').onclick=()=>{
+  if(!STATE.analyzed){toast('분석 후 내보낼 수 있습니다','err');return;}
+  openModal(`
+    <div class="modal-head"><div><h3>데이터 내보내기</h3><div class="sub">분석 결과를 원하는 형식으로 저장</div></div>
+    <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="grid three" style="gap:12px">
+        <button class="card" style="text-align:center;cursor:pointer" onclick="exportCSV()"><div style="font-size:28px">📄</div><b>CSV</b><div class="sub" style="font-size:12px;color:var(--text-3)">엑셀 호환</div></button>
+        <button class="card" style="text-align:center;cursor:pointer" onclick="exportCSV('excel')"><div style="font-size:28px">📊</div><b>Excel</b><div class="sub" style="font-size:12px;color:var(--text-3)">.xls</div></button>
+        <button class="card" style="text-align:center;cursor:pointer" onclick="window.print()"><div style="font-size:28px">🖨️</div><b>PDF</b><div class="sub" style="font-size:12px;color:var(--text-3)">인쇄→PDF</div></button>
+      </div>
+    </div>`);
+};
+function exportCSV(kind){
+  const cols=['회사','직무','지역','경력','학력','고용형태','최소연봉','최대연봉','산업군','규모','근무방식','기술스택'];
+  const rows=POSTINGS.map(p=>[p.company,p.role,p.region,p.expLabel,p.edu,p.employ,p.salaryMin,p.salaryMax,p.industry,p.size,p.work,p.stack.join(' | ')]);
+  const csv='﻿'+[cols.join(','),...rows.map(r=>r.map(c=>`"${c}"`).join(','))].join('\n');
+  const blob=new Blob([csv],{type:kind==='excel'?'application/vnd.ms-excel':'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='talentpulse_export.'+(kind==='excel'?'xls':'csv');a.click();
+  closeModal();toast('다운로드가 시작되었습니다','ok');
+}
+
+/* MODAL */
+function openModal(html){const r=$('#modalRoot');r.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;}
+function closeModal(){$('#modalRoot').innerHTML='';}
+
+/* DASHBOARD */
+function buildDashboard(){
+  const ok=OCR_STATUS.filter(s=>s==='ok').length;
+  const companies=uniq(POSTINGS.map(p=>p.company)).length;
+  const avgStack=(POSTINGS.reduce((s,p)=>s+p.stack.length,0)/POSTINGS.length).toFixed(1);
+  const avgExp=(POSTINGS.reduce((s,p)=>s+p.exp,0)/POSTINGS.length).toFixed(1);
+  const avgSalary=Math.round(POSTINGS.reduce((s,p)=>s+(p.salaryMin+p.salaryMax)/2,0)/POSTINGS.length);
+  const kpis=[
+    ['총 공고 수',POSTINGS.length,'건','📋'],['분석 성공',ok,'건','✅'],['기업 수',companies,'개','🏢'],
+    ['평균 요구기술',avgStack,'개','🧩'],['평균 경력',avgExp,'년','📈'],['평균 연봉',fmtMoney(avgSalary),'','💰'],
+    ['분석 시간',STATE.analyzeSeconds.toFixed(1),'초','⚡']
+  ];
+
+  const c=$('#dashContainer');
+  c.innerHTML=`
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+      <div><h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em">Job Market Dashboard</h1>
+      <p style="color:var(--text-2);margin-top:4px">16개 채용공고 · ${companies}개 기업 · 실시간 시장 분석 리포트</p></div>
+      <span class="pill" style="background:rgba(22,163,74,.12);color:var(--success)">● 분석 완료</span>
+    </div>
+
+    <div class="section-title"><span class="n">K</span>핵심 지표 (KPI)</div>
+    <div class="grid kpis" id="kpiGrid"></div>
+
+    <div class="section-title"><span class="n">19</span>AI Summary — 채용시장 요약</div>
+    <div class="ai-summary anim">
+      <div class="head"><span>🤖</span> AI 시장 요약 <span class="badge">LLM Analysis</span></div>
+      <p id="aiSummaryText"></p>
+    </div>
+
+    <div class="section-title"><span class="n">20</span>AI Insight — 실질 인사이트</div>
+    <div class="grid two" id="insightGrid"></div>
+
+    <div class="section-title"><span class="n">1</span>기술스택 TOP 20</div>
+    <div class="chart-card anim"><h4>가장 많이 요구되는 기술</h4><div class="desc">빈도 및 전체 공고 대비 비율</div><div class="bars" id="stackBars"></div></div>
+
+    <div class="section-title"><span class="n">2-5</span>언어 · 프레임워크 · 클라우드 · DB</div>
+    <div class="grid chart-grid">
+      <div class="chart-card anim"><h4>Programming Language</h4><div class="desc">언어별 요구 분포</div><div class="chart-wrap"><canvas id="langChart"></canvas></div></div>
+      <div class="chart-card anim"><h4>Framework</h4><div class="desc">프레임워크 요구 빈도</div><div class="chart-wrap"><canvas id="fwChart"></canvas></div></div>
+      <div class="chart-card anim"><h4>Cloud</h4><div class="desc">클라우드 플랫폼 분포</div><div class="chart-wrap"><canvas id="cloudChart"></canvas></div></div>
+      <div class="chart-card anim"><h4>Database</h4><div class="desc">DB 요구 빈도</div><div class="chart-wrap"><canvas id="dbChart"></canvas></div></div>
+    </div>
+
+    <div class="section-title"><span class="n">6-8</span>협업툴 · Soft Skill · 복지</div>
+    <div class="grid three">
+      <div class="chart-card anim"><h4>협업툴</h4><div class="desc">사용 도구 빈도</div><div class="tags" id="toolTags" style="margin-top:8px"></div></div>
+      <div class="chart-card anim"><h4>Soft Skill</h4><div class="desc">요구 역량</div><div class="bars" id="softBars"></div></div>
+      <div class="chart-card anim"><h4>복지</h4><div class="desc">제공 복지 항목</div><div class="bars" id="welfareBars"></div></div>
+    </div>
+
+    <div class="section-title"><span class="n">9-11</span>경력 · 학력 · 근무형태</div>
+    <div class="grid three">
+      <div class="chart-card anim"><h4>경력 분포</h4><div class="desc">신입~10년</div><div class="chart-wrap" style="height:260px"><canvas id="expChart"></canvas></div></div>
+      <div class="chart-card anim"><h4>학력 요건</h4><div class="desc">무관/학사/석사/박사</div><div class="chart-wrap" style="height:260px"><canvas id="eduChart"></canvas></div></div>
+      <div class="chart-card anim"><h4>근무 형태</h4><div class="desc">출근/재택/Hybrid</div><div class="chart-wrap" style="height:260px"><canvas id="workChart"></canvas></div></div>
+    </div>
+
+    <div class="section-title"><span class="n">12-14</span>지역 · 산업군 · 기업규모</div>
+    <div class="grid three">
+      <div class="chart-card anim"><h4>지역 분석 🗺️</h4><div class="desc">근무지 분포</div><div id="regionMap" style="margin-top:10px"></div></div>
+      <div class="chart-card anim"><h4>산업군</h4><div class="desc">도메인 분포</div><div class="chart-wrap" style="height:280px"><canvas id="industryChart"></canvas></div></div>
+      <div class="chart-card anim"><h4>기업 규모</h4><div class="desc">스타트업~외국계</div><div class="chart-wrap" style="height:280px"><canvas id="sizeChart"></canvas></div></div>
+    </div>
+
+    <div class="section-title"><span class="n">15</span>연봉 분석</div>
+    <div class="grid two">
+      <div class="chart-card anim"><h4>연봉 통계</h4><div class="desc">평균 · 중앙값 · 최고 · 최저 (만원)</div><div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:6px" id="salaryStats"></div></div>
+      <div class="chart-card anim"><h4>직무별 연봉 범위 (박스플롯)</h4><div class="desc">최소~최대 연봉 밴드</div><div class="chart-wrap" style="height:300px"><canvas id="salaryChart"></canvas></div></div>
+    </div>
+
+    <div class="section-title"><span class="n">16</span>키워드 클라우드</div>
+    <div class="chart-card anim"><h4>자동 추출 키워드</h4><div class="desc">빈도 기반 크기 스케일링</div><div class="cloud" id="keywordCloud"></div></div>
+
+    <div class="section-title"><span class="n">17-18</span>우대사항 · 자격요건 (자동 그룹핑)</div>
+    <div class="grid two">
+      <div class="chart-card anim"><h4>우대사항 그룹</h4><div class="desc">클러스터링 결과</div><div class="bars" id="prefBars"></div></div>
+      <div class="chart-card anim"><h4>필수 자격요건 그룹</h4><div class="desc">클러스터링 결과</div><div class="bars" id="reqBars"></div></div>
+    </div>
+
+    <div class="section-title"><span class="n">→</span>더 살펴보기</div>
+    <div class="grid three">
+      <button class="card" style="text-align:left;cursor:pointer" onclick="switchView('postings')"><b>📋 공고 목록 & 필터</b><p class="sub" style="color:var(--text-2);font-size:13px;margin-top:4px">검색·필터·정렬로 개별 공고 탐색</p></button>
+      <button class="card" style="text-align:left;cursor:pointer" onclick="switchView('compare')"><b>🏢 기업 비교</b><p class="sub" style="color:var(--text-2);font-size:13px;margin-top:4px">기업 조건을 나란히 비교</p></button>
+      <button class="card" style="text-align:left;cursor:pointer" onclick="switchView('resume')"><b>🎯 이력서 매칭</b><p class="sub" style="color:var(--text-2);font-size:13px;margin-top:4px">Match Score & 학습 우선순위</p></button>
+    </div>
+  `;
+
+  $('#kpiGrid').innerHTML=kpis.map((k,i)=>`
+    <div class="card kpi anim" style="animation-delay:${i*40}ms">
+      <div class="kic">${k[3]}</div>
+      <div class="lab">${k[0]}</div>
+      <div class="val">${k[1]}<small> ${k[2]}</small></div>
+    </div>`).join('');
+
+  typeText($('#aiSummaryText'), AI_SUMMARY);
+  renderInsights();
+  rerenderCharts();
+  renderBarsAndTags();
+}
+
+let AI_SUMMARY = `현재 채용시장은 백엔드와 프론트엔드 중심의 서버·웹 개발 수요가 지배적이며, Java·Spring Boot 진영과 TypeScript·React 진영으로 양분되어 있습니다. 클라우드는 AWS가 압도적이나 Docker·Kubernetes 등 컨테이너·오케스트레이션 역량이 사실상 필수 요건으로 자리잡았습니다. 경력 3~5년의 미들 레벨 수요가 가장 크고, 학력은 절반 이상이 '무관'으로 실무 역량 중심의 채용이 뚜렷합니다. 핀테크·커머스·AI 도메인의 연봉 상단이 높으며(최대 1.5억), 재택·유연근무·맥북 지급 등 개발 친화 복지가 표준화되고 있습니다. Soft skill로는 '협업'과 '문제해결'이 기술만큼 강조되며, 사이드 프로젝트·오픈소스 기여 경험을 우대하는 흐름이 확산되고 있습니다.`;
+
+let AI_INSIGHTS=[
+  ['🔥','Docker·Kubernetes가 사실상 필수화','컨테이너/오케스트레이션 요구 비율이 AWS 다음으로 높으며, 백엔드·DevOps·플랫폼 직군 전반으로 빠르게 확산되고 있습니다.'],
+  ['🥇','Spring Boot가 가장 많이 요구되는 프레임워크','백엔드 공고의 대다수가 Spring Boot를 명시. Java뿐 아니라 Kotlin 진영에서도 표준으로 자리잡았습니다.'],
+  ['💡','사이드 프로젝트·오픈소스 우대 확산','우대사항 그룹핑 결과 "사이드 프로젝트/오픈소스 기여"가 도메인 경험 다음으로 자주 등장합니다.'],
+  ['📉','학력 요건 완화 뚜렷','절반 이상 공고가 학력 "무관". 신입 채용에서도 CS 기초·알고리즘 등 실력 검증으로 대체되는 추세입니다.'],
+  ['💰','핀테크·AI 도메인 연봉 프리미엄','토스·라인·센드버드 등 핀테크/AI 기업의 연봉 상단이 1.2~1.5억으로 커머스 대비 20~30% 높습니다.'],
+  ['🏠','재택·유연근무가 복지 표준','카카오·당근·리디 등은 상시 재택을 명시. 맥북 지급·유연근무가 개발 직군 필수 복지로 정착했습니다.']
+];
+function renderInsights(){
+  $('#insightGrid').innerHTML=AI_INSIGHTS.map((d,i)=>`
+    <div class="insight" style="animation-delay:${i*60}ms">
+      <div class="ic">${d[0]}</div>
+      <div><h5>${d[1]}</h5><p>${d[2]}</p></div>
+    </div>`).join('');
+}
+
+function typeText(el,text){el.textContent='';el.classList.add('typed');let i=0;
+  const iv=setInterval(()=>{el.textContent=text.slice(0,i);i+=3;if(i>text.length){clearInterval(iv);el.textContent=text;el.classList.remove('typed');}},12);}
+
+function renderBar(container,entries,total,max){
+  const mx=max||(entries[0]?entries[0][1]:1);
+  container.innerHTML=entries.map(([k,v])=>`
+    <div class="bar-row"><div class="bn">${k}</div>
+    <div class="bar-track"><i style="width:0" data-w="${(v/mx*100)}"></i></div>
+    <div class="bv">${v}건 · ${Math.round(v/total*100)}%</div></div>`).join('');
+  requestAnimationFrame(()=>$$('.bar-track>i',container).forEach(i=>i.style.width=i.dataset.w+'%'));
+}
+
+function renderBarsAndTags(){
+  const N=POSTINGS.length;
+  renderBar($('#stackBars'), sortedEntries(countBy(POSTINGS,p=>p.stack)).slice(0,20), N);
+  renderBar($('#softBars'), sortedEntries(countBy(POSTINGS,p=>p.soft)), N);
+  renderBar($('#welfareBars'), sortedEntries(countBy(POSTINGS,p=>p.welfare)), N);
+  renderBar($('#prefBars'), sortedEntries(groupPref()), N);
+  renderBar($('#reqBars'), sortedEntries(groupReq()), N);
+
+  const tools=sortedEntries(countBy(POSTINGS,p=>p.tools));
+  $('#toolTags').innerHTML=tools.map(([k,v])=>`<span class="tag">${k}<span class="c">${v}</span></span>`).join('');
+
+  const reg=sortedEntries(countBy(POSTINGS,p=>p.region));
+  const rmax=reg[0][1];
+  $('#regionMap').innerHTML=reg.map(([k,v])=>`
+    <div class="map-row"><span class="rn">${k}</span>
+    <div class="bar-track"><i style="width:${v/rmax*100}%;background:linear-gradient(90deg,var(--cyan),var(--primary))"></i></div>
+    <span class="bv">${v}</span></div>`).join('') +
+    `<div style="font-size:12px;color:var(--text-3);margin-top:10px;text-align:center">🗺️ 서울 강남권 집중 — 전체의 ${Math.round(POSTINGS.filter(p=>p.region.includes('강남')).length/N*100)}%</div>`;
+
+  const avgs=POSTINGS.map(p=>(p.salaryMin+p.salaryMax)/2);
+  const stats=[['평균',Math.round(avgs.reduce((a,b)=>a+b)/avgs.length)],['중앙값',median(avgs)],
+    ['최고',Math.max(...POSTINGS.map(p=>p.salaryMax))],['최저',Math.min(...POSTINGS.map(p=>p.salaryMin))]];
+  $('#salaryStats').innerHTML=stats.map(s=>`
+    <div class="card" style="padding:16px;box-shadow:none;border-color:var(--border)"><div class="lab" style="font-size:12px;color:var(--text-3)">${s[0]}</div>
+    <div style="font-size:24px;font-weight:800;margin-top:4px">${fmtMoney(Math.round(s[1]))}</div></div>`).join('');
+
+  const kw=sortedEntries(countBy(POSTINGS,p=>p.keywords));
+  const kmax=kw[0][1];
+  $('#keywordCloud').innerHTML=kw.map(([k,v],i)=>{
+    const size=14+(v/kmax)*26;const op=0.55+(v/kmax)*0.45;
+    return `<span style="font-size:${size}px;color:${PAL[i%PAL.length]};opacity:${op}">${k}</span>`;}).join('');
+}
+
+function groupPref(){
+  const g={'도메인 경험':0,'대규모 트래픽/분산':0,'사이드 프로젝트/오픈소스':0,'아키텍처 설계':0,'성능 최적화':0,'테스트/품질':0};
+  POSTINGS.forEach(p=>p.pref.forEach(x=>{
+    if(/도메인|금융|여행|게임|커머스|콘텐츠|글로벌/.test(x))g['도메인 경험']++;
+    else if(/트래픽|분산|대규모|동접|스트리밍|데이터 파이프라인/.test(x))g['대규모 트래픽/분산']++;
+    else if(/사이드|오픈소스|대회/.test(x))g['사이드 프로젝트/오픈소스']++;
+    else if(/설계|아키텍처|MSA|이벤트|시스템|IaC|MLOps|모니터링/.test(x))g['아키텍처 설계']++;
+    else if(/최적화|성능/.test(x))g['성능 최적화']++;
+    else if(/테스트|품질/.test(x))g['테스트/품질']++;
+    else g['도메인 경험']++;
+  }));return g;
+}
+function groupReq(){
+  const g={'해당 언어 N년 경력':0,'프레임워크 숙련':0,'RDBMS/DB 이해':0,'CS 기초/알고리즘':0,'API/아키텍처 설계':0,'인프라/네트워크':0};
+  POSTINGS.forEach(p=>p.req.forEach(x=>{
+    if(/\d년|경력|이상/.test(x))g['해당 언어 N년 경력']++;
+    else if(/Spring|React|프레임워크|Node|Kotlin|Swift|MVVM/.test(x))g['프레임워크 숙련']++;
+    else if(/RDBMS|DB|SQL|통계|데이터/.test(x))g['RDBMS/DB 이해']++;
+    else if(/CS|자료구조|알고리즘|기초/.test(x))g['CS 기초/알고리즘']++;
+    else if(/API|설계|아키텍처|시스템|분산/.test(x))g['API/아키텍처 설계']++;
+    else if(/Kubernetes|AWS|네트워크|인프라|처리/.test(x))g['인프라/네트워크']++;
+    else g['프레임워크 숙련']++;
+  }));return g;
+}
+
+/* CHARTS */
+function destroyCharts(){Object.values(STATE.charts).forEach(c=>c&&c.destroy());STATE.charts={};}
+function baseOpts(legend='bottom'){
+  const grid=cssv('--border');const tx=cssv('--text-2');
+  return {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:legend,labels:{color:tx,font:{size:12,family:'inherit'},padding:14,usePointStyle:true,pointStyle:'circle'}},
+    tooltip:{backgroundColor:cssv('--surface'),titleColor:cssv('--text'),bodyColor:tx,borderColor:grid,borderWidth:1,padding:10,cornerRadius:8,titleFont:{weight:'700'}}}};
+}
+function barScales(){const grid=cssv('--border');const tx=cssv('--text-3');
+  return {x:{grid:{display:false},ticks:{color:tx,font:{size:11}}},y:{grid:{color:grid},ticks:{color:tx,font:{size:11}},beginAtZero:true}};}
+
+function rerenderCharts(){
+  if(typeof Chart==='undefined')return;
+  destroyCharts();
+  Chart.defaults.font.family='inherit';
+  const lang=sortedEntries(countBy(POSTINGS,p=>p.lang));
+  const fw=sortedEntries(countBy(POSTINGS,p=>p.framework)).slice(0,8);
+  const cloud=sortedEntries(countBy(POSTINGS,p=>p.cloud));
+  const db=sortedEntries(countBy(POSTINGS,p=>p.db)).slice(0,8);
+
+  STATE.charts.lang=new Chart($('#langChart'),{type:'pie',
+    data:{labels:lang.map(e=>e[0]),datasets:[{data:lang.map(e=>e[1]),backgroundColor:PAL,borderWidth:2,borderColor:cssv('--surface')}]},options:baseOpts()});
+  STATE.charts.fw=new Chart($('#fwChart'),{type:'bar',
+    data:{labels:fw.map(e=>e[0]),datasets:[{data:fw.map(e=>e[1]),backgroundColor:cssv('--primary'),borderRadius:6}]},options:Object.assign(baseOpts(),{plugins:{legend:{display:false}},scales:barScales()})});
+  STATE.charts.cloud=new Chart($('#cloudChart'),{type:'doughnut',
+    data:{labels:cloud.map(e=>e[0]),datasets:[{data:cloud.map(e=>e[1]),backgroundColor:PAL,borderWidth:2,borderColor:cssv('--surface')}]},options:Object.assign(baseOpts(),{cutout:'58%'})});
+  STATE.charts.db=new Chart($('#dbChart'),{type:'bar',
+    data:{labels:db.map(e=>e[0]),datasets:[{data:db.map(e=>e[1]),backgroundColor:cssv('--violet'),borderRadius:6}]},options:Object.assign(baseOpts(),{indexAxis:'y',plugins:{legend:{display:false}},scales:barScales()})});
+
+  const expBuckets={'신입':0,'1년':0,'2-3년':0,'4-5년':0,'7년+':0};
+  POSTINGS.forEach(p=>{if(p.exp===0)expBuckets['신입']++;else if(p.exp===1)expBuckets['1년']++;else if(p.exp<=3)expBuckets['2-3년']++;else if(p.exp<=5)expBuckets['4-5년']++;else expBuckets['7년+']++;});
+  STATE.charts.exp=new Chart($('#expChart'),{type:'bar',
+    data:{labels:Object.keys(expBuckets),datasets:[{data:Object.values(expBuckets),backgroundColor:cssv('--cyan'),borderRadius:6}]},options:Object.assign(baseOpts(),{plugins:{legend:{display:false}},scales:barScales()})});
+
+  const edu=sortedEntries(countBy(POSTINGS,p=>p.edu));
+  STATE.charts.edu=new Chart($('#eduChart'),{type:'doughnut',
+    data:{labels:edu.map(e=>e[0]),datasets:[{data:edu.map(e=>e[1]),backgroundColor:PAL,borderWidth:2,borderColor:cssv('--surface')}]},options:Object.assign(baseOpts(),{cutout:'58%'})});
+
+  const work=sortedEntries(countBy(POSTINGS,p=>p.work));
+  STATE.charts.work=new Chart($('#workChart'),{type:'pie',
+    data:{labels:work.map(e=>e[0]),datasets:[{data:work.map(e=>e[1]),backgroundColor:['#2563eb','#16a34a','#7c3aed'],borderWidth:2,borderColor:cssv('--surface')}]},options:baseOpts()});
+
+  const ind=sortedEntries(countBy(POSTINGS,p=>p.industry));
+  STATE.charts.industry=new Chart($('#industryChart'),{type:'bar',
+    data:{labels:ind.map(e=>e[0]),datasets:[{data:ind.map(e=>e[1]),backgroundColor:PAL,borderRadius:6}]},options:Object.assign(baseOpts(),{indexAxis:'y',plugins:{legend:{display:false}},scales:barScales()})});
+
+  const size=sortedEntries(countBy(POSTINGS,p=>p.size));
+  STATE.charts.size=new Chart($('#sizeChart'),{type:'polarArea',
+    data:{labels:size.map(e=>e[0]),datasets:[{data:size.map(e=>e[1]),backgroundColor:PAL.map(c=>c+'cc'),borderWidth:1,borderColor:cssv('--surface')}]},options:Object.assign(baseOpts(),{scales:{r:{grid:{color:cssv('--border')},ticks:{display:false}}}})});
+
+  const byRole={};POSTINGS.forEach(p=>{(byRole[p.role]=byRole[p.role]||[]).push(p);});
+  const roles=Object.keys(byRole).slice(0,10);
+  STATE.charts.salary=new Chart($('#salaryChart'),{type:'bar',
+    data:{labels:roles,datasets:[{label:'연봉 범위(만원)',
+      data:roles.map(r=>{const ps=byRole[r];return [Math.min(...ps.map(p=>p.salaryMin)),Math.max(...ps.map(p=>p.salaryMax))];}),
+      backgroundColor:cssv('--primary')+'aa',borderColor:cssv('--primary'),borderWidth:1,borderRadius:6,borderSkipped:false}]},
+    options:Object.assign(baseOpts(),{indexAxis:'y',plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>`${c.raw[0].toLocaleString()}~${c.raw[1].toLocaleString()}만원`}}},
+      scales:{x:{grid:{color:cssv('--border')},ticks:{color:cssv('--text-3'),font:{size:11},callback:v=>v/10000+'억'}},y:{grid:{display:false},ticks:{color:cssv('--text-3'),font:{size:11}}}}})});
+}
+
+/* FILTERS + TABLE */
+function fillSelect(id,label,vals){$(id).innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option>${v}</option>`).join('');}
+function buildFilters(){
+  fillSelect('#f-role','전 직무',uniq(POSTINGS.map(p=>p.role)));
+  fillSelect('#f-region','전 지역',uniq(POSTINGS.map(p=>p.region)));
+  fillSelect('#f-exp','전 경력',uniq(POSTINGS.map(p=>p.expLabel)));
+  fillSelect('#f-size','전 규모',uniq(POSTINGS.map(p=>p.size)));
+  fillSelect('#f-industry','전 산업군',uniq(POSTINGS.map(p=>p.industry)));
+  fillSelect('#f-stack','전 기술스택',uniq(POSTINGS.flatMap(p=>p.stack)).sort());
+  ['#f-role','#f-region','#f-exp','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).onchange=applyFilters);
+  $('#searchInput').oninput=applyFilters;
+  $('#resetFilt').onclick=()=>{['#f-role','#f-region','#f-exp','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).value='');$('#searchInput').value='';applyFilters();};
+  $$('#postTable th[data-sort]').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.sort;STATE.sort.dir=STATE.sort.key===k?-STATE.sort.dir:1;STATE.sort.key=k;renderTable();});
+}
+function applyFilters(){
+  const q=$('#searchInput').value.trim().toLowerCase();
+  const fr=$('#f-role').value,frg=$('#f-region').value,fe=$('#f-exp').value,fs=$('#f-size').value,fi=$('#f-industry').value,fst=$('#f-stack').value;
+  STATE.filtered=POSTINGS.filter(p=>{
+    if(fr&&p.role!==fr)return false;if(frg&&p.region!==frg)return false;if(fe&&p.expLabel!==fe)return false;
+    if(fs&&p.size!==fs)return false;if(fi&&p.industry!==fi)return false;if(fst&&!p.stack.includes(fst))return false;
+    if(q){const blob=(p.company+p.role+p.region+p.stack.join(' ')+p.keywords.join(' ')+p.industry).toLowerCase();if(!blob.includes(q))return false;}
+    return true;
+  });
+  renderTable();
+}
+function renderTable(){
+  let rows=[...STATE.filtered];
+  if(STATE.sort.key){const k=STATE.sort.key,d=STATE.sort.dir;
+    rows.sort((a,b)=>{let x=a[k],y=b[k];if(typeof x==='string')return x.localeCompare(y)*d;return (x-y)*d;});}
+  $('#resultCount').textContent=`${rows.length}개 공고 표시 중 (전체 ${POSTINGS.length}개)`;
+  const body=$('#postBody');
+  if(!rows.length){body.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ic">🔍</div><b>결과가 없습니다</b><p>필터를 조정해 보세요</p></div></td></tr>`;return;}
+  body.innerHTML=rows.map(p=>`
+    <tr>
+      <td><b>${p.company}</b></td><td>${p.role}</td><td>${p.region}</td>
+      <td><span class="chip">${p.expLabel}</span></td><td>${fmtMoney(p.salaryMax)}</td><td>${p.size}</td><td>${p.industry}</td>
+      <td>${p.stack.slice(0,3).map(s=>`<span class="mini-tag">${s}</span>`).join('')}${p.stack.length>3?`<span class="mini-tag">+${p.stack.length-3}</span>`:''}</td>
+      <td><span class="link" onclick="showDetail(${p.id})">상세 →</span></td>
+    </tr>`).join('');
+}
+
+/* DETAIL */
+function showDetail(id){
+  const p=POSTINGS.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-head">
+      <div><h3>${p.company} · ${p.role}</h3><div class="sub">${p.region} · ${p.expLabel} · ${p.employ} · ${fmtMoney(p.salaryMin)}~${fmtMoney(p.salaryMax)}</div></div>
+      <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="ai-summary" style="margin-bottom:18px;padding:16px">
+        <div class="head" style="font-size:14px;margin-bottom:8px"><span>🤖</span> AI 요약</div>
+        <p style="font-size:14px">${p.company}의 ${p.role} 포지션은 ${p.stack.slice(0,3).join(', ')} 중심의 ${p.industry} 도메인 채용입니다. ${p.expLabel} 대상이며 ${p.work} 근무, 핵심 우대는 "${p.pref[0]}"입니다.</p>
+      </div>
+      <div class="subhead">추출 데이터 (NER)</div>
+      <div class="detail-grid">
+        <div class="f"><div class="k">회사명</div><div class="v">${p.company}</div></div>
+        <div class="f"><div class="k">직무</div><div class="v">${p.role}</div></div>
+        <div class="f"><div class="k">근무지역</div><div class="v">${p.region}</div></div>
+        <div class="f"><div class="k">경력</div><div class="v">${p.expLabel}</div></div>
+        <div class="f"><div class="k">학력</div><div class="v">${p.edu}</div></div>
+        <div class="f"><div class="k">고용형태</div><div class="v">${p.employ}</div></div>
+        <div class="f"><div class="k">연봉</div><div class="v">${fmtMoney(p.salaryMin)} ~ ${fmtMoney(p.salaryMax)}</div></div>
+        <div class="f"><div class="k">근무방식</div><div class="v">${p.work}</div></div>
+        <div class="f"><div class="k">산업군</div><div class="v">${p.industry}</div></div>
+        <div class="f"><div class="k">회사규모</div><div class="v">${p.size}</div></div>
+      </div>
+      <div class="subhead">기술스택 · Cloud · DB · 협업툴</div>
+      <div class="tags" style="margin-bottom:8px">${p.stack.map(s=>`<span class="tag">${s}</span>`).join('')}</div>
+      <div class="tags" style="margin-bottom:8px">${[...p.cloud,...p.db,...p.tools].map(s=>`<span class="mini-tag" style="font-size:12px;padding:4px 9px">${s}</span>`).join('')}</div>
+      <div class="subhead">필수 조건</div><ul style="margin-left:18px;color:var(--text-2);font-size:14px;line-height:1.9">${p.req.map(r=>`<li>${r}</li>`).join('')}</ul>
+      <div class="subhead">우대 사항</div><ul style="margin-left:18px;color:var(--text-2);font-size:14px;line-height:1.9">${p.pref.map(r=>`<li>${r}</li>`).join('')}</ul>
+      <div class="subhead">복지</div><div class="tags" style="margin-bottom:8px">${p.welfare.map(w=>`<span class="tag">${w}</span>`).join('')}</div>
+      <div class="subhead">원본 OCR 텍스트</div>
+      <div class="ocr-box">[${p.company}] ${p.role} 채용
+─────────────────────────
+▪ 근무지: ${p.region} (${p.work})
+▪ 자격요건: ${p.req.join(' / ')}
+▪ 우대사항: ${p.pref.join(' / ')}
+▪ 사용기술: ${p.stack.join(', ')}
+▪ 자격증: ${p.certs.length?p.certs.join(', '):'무관'}
+▪ 복리후생: ${p.welfare.join(', ')}
+▪ 고용형태: ${p.employ} · ${p.edu}
+▪ 연봉: 협의 (${fmtMoney(p.salaryMin)}~${fmtMoney(p.salaryMax)} 추정)
+
+[OCR 신뢰도 98.4% · NER 추출 완료]</div>
+    </div>`);
+}
+
+/* COMPARE */
+function buildComparePicker(){
+  const companies=uniq(POSTINGS.map(p=>p.company));
+  $('#comparePick').innerHTML=companies.map(c=>`<button class="pick" data-c="${c}">${c}</button>`).join('');
+  $$('#comparePick .pick').forEach(b=>b.onclick=()=>{
+    const c=b.dataset.c;const i=STATE.compare.indexOf(c);
+    if(i>=0){STATE.compare.splice(i,1);b.classList.remove('on');}
+    else{if(STATE.compare.length>=4){toast('최대 4개까지 비교 가능','err');return;}STATE.compare.push(c);b.classList.add('on');}
+    renderCompareTable();
+  });
+  renderCompareTable();
+}
+function renderCompareTable(){
+  const wrap=$('#compareTableWrap');
+  if(STATE.compare.length<2){wrap.innerHTML=`<div class="empty"><div class="ic">🏢</div><b>기업을 2개 이상 선택하세요</b><p>선택한 기업의 조건을 나란히 비교합니다</p></div>`;return;}
+  const picked=STATE.compare.map(c=>POSTINGS.find(p=>p.company===c));
+  const rows=[
+    ['직무',p=>p.role],['지역',p=>p.region],['경력',p=>p.expLabel],['학력',p=>p.edu],
+    ['연봉',p=>`${fmtMoney(p.salaryMin)}~${fmtMoney(p.salaryMax)}`],['산업군',p=>p.industry],['규모',p=>p.size],
+    ['근무방식',p=>p.work],['기술스택',p=>p.stack.map(s=>`<span class="mini-tag">${s}</span>`).join('')],
+    ['Cloud',p=>p.cloud.join(', ')],['복지',p=>p.welfare.join(', ')]
+  ];
+  wrap.innerHTML=`<table><thead><tr><th>항목</th>${picked.map(p=>`<th>${p.company}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr><td style="color:var(--text-3);font-weight:700">${r[0]}</td>${picked.map(p=>`<td style="white-space:normal">${r[1](p)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+/* RESUME MATCH */
+const ALL_SKILLS_FREQ=sortedEntries(countBy(POSTINGS,p=>p.stack));
+$('#sampleResume').onclick=()=>{$('#resumeText').value='백엔드 개발자 3년차. Java, Spring Boot, MySQL, Git, REST API 경험. AWS 일부 사용. 사이드 프로젝트로 커뮤니티 서비스 운영.';toast('샘플 이력서를 채웠습니다','ok');};
+$('#matchBtn').onclick=()=>{
+  const txt=$('#resumeText').value.trim();
+  if(!txt){toast('이력서 내용을 입력하세요','err');return;}
+  const btn=$('#matchBtn');btn.innerHTML='<span class="spinner"></span> 분석 중…';
+  setTimeout(()=>{runMatch(txt);btn.innerHTML='매칭 분석 실행';},1400);
+};
+function runMatch(txt,fromHistory){
+  const low=txt.toLowerCase();
+  const owned=uniq(POSTINGS.flatMap(p=>p.stack)).filter(s=>low.includes(s.toLowerCase()));
+  const missing=ALL_SKILLS_FREQ.filter(([s])=>!owned.includes(s));
+  const top10=ALL_SKILLS_FREQ.slice(0,10);
+  const gained=top10.filter(([s])=>owned.includes(s)).reduce((a,[,v])=>a+v,0);
+  const totalW=top10.reduce((a,[,v])=>a+v,0);
+  const score=Math.round(35+(gained/totalW)*60+Math.min(owned.length,8));
+  const scoreClamp=Math.min(score,96);
+  const priority=missing.slice(0,3).map(e=>e[0]);
+  const recommend=POSTINGS.map(p=>{
+    const overlap=p.stack.filter(s=>owned.includes(s)).length;
+    return {p,pct:Math.round(overlap/p.stack.length*100)};
+  }).sort((a,b)=>b.pct-a.pct).slice(0,5);
+
+  const circ=2*Math.PI*80;
+  const off=circ-(scoreClamp/100)*circ;
+  const color=scoreClamp>=75?cssv('--success'):scoreClamp>=55?cssv('--primary'):cssv('--warn');
+
+  $('#matchResult').innerHTML=`
+    <div class="card anim">
+      <div class="match-hero">
+        <div class="gauge">
+          <svg width="200" height="200">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="${cssv('--bg-2')}" stroke-width="16"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="${color}" stroke-width="16" stroke-linecap="round"
+              stroke-dasharray="${circ}" stroke-dashoffset="${circ}" style="transition:stroke-dashoffset 1.2s ease" id="gaugeArc"/>
+          </svg>
+          <div class="center"><div><div class="s" style="color:${color}">${scoreClamp}</div><div class="l">Match Score</div></div></div>
+        </div>
+        <div>
+          <h3 style="font-size:20px;font-weight:800">${scoreClamp>=75?'매우 적합한 프로필입니다 🎉':scoreClamp>=55?'경쟁력 있는 프로필입니다 👍':'보완이 필요합니다 💪'}</h3>
+          <p style="color:var(--text-2);margin-top:8px;font-size:14px">보유 기술 <b>${owned.length}개</b>가 현재 시장 수요와 매칭됩니다. 시장에서 가장 많이 요구되는 상위 기술 대비 커버리지를 기준으로 점수를 산정했습니다.</p>
+          <div class="tags" style="margin-top:12px">${owned.map(s=>`<span class="tag" style="border-color:var(--success);color:var(--success)">✓ ${s}</span>`).join('')||'<span class="sub">매칭된 기술 없음</span>'}</div>
+        </div>
+      </div>
+
+      <div class="skill-cols">
+        <div class="skill-box">
+          <h5>❌ 부족한 기술</h5>
+          <div class="slist">${missing.slice(0,5).map(([s,v])=>`<div class="srow"><span>${s}</span><span style="margin-left:auto;color:var(--text-3);font-size:12px">${v}개 공고</span></div>`).join('')}</div>
+        </div>
+        <div class="skill-box">
+          <h5>🔥 많이 요구되는 기술</h5>
+          <div class="slist">${top10.slice(0,5).map(([s,v])=>`<div class="srow"><span>${s}</span><span style="margin-left:auto;color:var(--text-3);font-size:12px">${Math.round(v/POSTINGS.length*100)}%</span></div>`).join('')}</div>
+        </div>
+        <div class="skill-box">
+          <h5>🎯 우선 공부할 기술</h5>
+          <div class="slist">${priority.map((s,i)=>`<div class="srow"><span class="num">${i+1}</span><span>${s}</span></div>`).join('')}</div>
+        </div>
+      </div>
+
+      <div class="subhead" style="margin-top:22px">🤖 AI 학습 우선순위 (Gap Analysis)</div>
+      <div>
+        <div class="plan-step"><div class="pn">1</div><div><b>합격 가능성을 높이려면 먼저 ${priority[0]||'Docker'}를 공부하세요.</b><p style="color:var(--text-2);font-size:13.5px;margin-top:2px">전체 공고의 상당수가 요구하는데 이력서에 없습니다. 가장 빠르게 매칭률을 올리는 방법입니다.</p></div></div>
+        <div class="plan-step"><div class="pn">2</div><div><b>${priority[1]||'Kubernetes'} 실습 프로젝트를 진행하세요.</b><p style="color:var(--text-2);font-size:13.5px;margin-top:2px">컨테이너·오케스트레이션은 백엔드/DevOps 직군 필수 요건으로 굳어지는 추세입니다.</p></div></div>
+        <div class="plan-step"><div class="pn">3</div><div><b>${priority[2]||'Kafka'} 등 메시징/분산 경험을 쌓으세요.</b><p style="color:var(--text-2);font-size:13.5px;margin-top:2px">중견~대기업 백엔드 공고의 우대사항에서 자주 등장합니다.</p></div></div>
+      </div>
+
+      <div class="subhead" style="margin-top:22px">📌 추천 공고 순위</div>
+      <div class="tbl-wrap"><table><thead><tr><th>순위</th><th>회사</th><th>직무</th><th>적합도</th><th>연봉</th><th></th></tr></thead>
+        <tbody>${recommend.map((r,i)=>`<tr><td><b>${i+1}</b></td><td>${r.p.company}</td><td>${r.p.role}</td>
+          <td><div class="bar-track" style="width:90px;display:inline-block;vertical-align:middle"><i style="width:${r.pct}%"></i></div> <b style="font-size:12px">${r.pct}%</b></td>
+          <td>${fmtMoney(r.p.salaryMax)}</td><td><span class="link" onclick="showDetail(${r.p.id})">보기</span></td></tr>`).join('')}</tbody></table></div>
+    </div>`;
+  requestAnimationFrame(()=>{const arc=$('#gaugeArc');if(arc)arc.style.strokeDashoffset=off;});
+  if(!fromHistory){
+    addHistory({type:'resume',title:`이력서 매칭 · ${scoreClamp}점`,
+      meta:`매칭 기술 ${owned.length}개 · 우선학습 ${priority[0]||'-'}`,
+      resumeText:txt});
+    toast(`Match Score ${scoreClamp}점 산출 완료`,'ok');
+  }
+}
+
+/* ================= HISTORY (GPT-style) ================= */
+let HISTORY=[];
+let ACTIVE_HID=null;
+async function loadHistory(){try{HISTORY=await window.TPDB.listHistory();}catch(e){console.warn('기록 로드 실패',e);HISTORY=[];}}
+function relTime(ts){
+  const d=Date.now()-ts,m=60000,h=3600000,day=86400000;
+  if(d<m)return'방금 전';if(d<h)return Math.floor(d/m)+'분 전';if(d<day)return Math.floor(d/h)+'시간 전';
+  if(d<day*7)return Math.floor(d/day)+'일 전';
+  return new Date(ts).toLocaleDateString('ko-KR',{month:'short',day:'numeric'});
+}
+function fullTime(ts){return new Date(ts).toLocaleString('ko-KR',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+async function addHistory(entry){
+  try{
+    const id=await window.TPDB.saveAnalysis(entry, entry._postings||null);
+    ACTIVE_HID=id;
+    await loadHistory();
+  }catch(e){console.warn('기록 저장 실패',e);toast('기록 저장 실패: '+(e.message||e),'err');}
+  renderHistory();updateHistBadge();
+  return ACTIVE_HID;
+}
+async function deleteHistory(id,ev){
+  if(ev)ev.stopPropagation();
+  try{await window.TPDB.deleteHistory(id);}catch(e){console.warn(e);}
+  HISTORY=HISTORY.filter(h=>h.id!==id);
+  if(ACTIVE_HID===id)ACTIVE_HID=null;
+  renderHistory();updateHistBadge();
+}
+async function clearHistory(){
+  if(!HISTORY.length)return;
+  if(!confirm('모든 분석 기록을 삭제할까요?'))return;
+  try{await window.TPDB.clearHistory();}catch(e){console.warn(e);}
+  HISTORY=[];ACTIVE_HID=null;renderHistory();updateHistBadge();
+  toast('기록을 모두 삭제했습니다','ok');
+}
+function updateHistBadge(){
+  const b=$('#histCount');b.textContent=HISTORY.length;
+  b.style.display=HISTORY.length?'grid':'none';
+}
+function groupLabel(ts){
+  const d=Date.now()-ts,day=86400000;
+  if(d<day)return'오늘';if(d<day*2)return'어제';if(d<day*7)return'지난 7일';return'이전';
+}
+function renderHistory(){
+  const list=$('#histList');
+  $('#histFootCount').textContent=HISTORY.length+'개 기록';
+  if(!HISTORY.length){list.innerHTML=`<div class="hist-empty"><div class="ic">🕓</div>아직 분석 기록이 없습니다.<br>채용공고를 분석하면 여기에 저장됩니다.</div>`;return;}
+  let html='',lastG=null;
+  HISTORY.forEach(h=>{
+    const g=groupLabel(h.time);
+    if(g!==lastG){html+=`<div class="hist-group-label">${g}</div>`;lastG=g;}
+    const ic=h.type==='resume'?'🎯':'📊';
+    html+=`<div class="hist-item ${h.id===ACTIVE_HID?'active':''}" onclick="openHistory('${h.id}')">
+      <div class="hic">${ic}</div>
+      <div class="hbody"><div class="htitle">${h.title}</div><div class="hmeta">${relTime(h.time)} · ${h.meta}</div></div>
+      <button class="hdel" title="삭제" onclick="deleteHistory('${h.id}',event)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>`;
+  });
+  list.innerHTML=html;
+}
+async function openHistory(id){
+  const h=HISTORY.find(x=>x.id===id);if(!h)return;
+  ACTIVE_HID=id;renderHistory();closeDrawer();
+  if(h.type==='resume'){
+    switchView('resume');
+    $('#resumeText').value=h.resumeText||'';
+    if(h.resumeText)runMatch(h.resumeText,true);
+    toast('이력서 매칭 기록을 불러왔습니다','ok');
+    return;
+  }
+  // 분석 기록: 실시간 모드면 저장된 공고를 DB에서 복원
+  try{
+    const full=await window.TPDB.loadAnalysis(id);
+    if(full&&full.postings&&full.postings.length){
+      POSTINGS.length=0;
+      full.postings.forEach((p,i)=>POSTINGS.push(normalizePosting(p,i+1)));
+      if(full.summary)AI_SUMMARY=full.summary;
+      if(full.insights&&full.insights.length)AI_INSIGHTS=full.insights.map(x=>[x.icon||'✦',x.title||'',x.body||'']);
+    }
+  }catch(e){console.warn(e);}
+  STATE.analyzed=true;STATE.analyzeSeconds=h.seconds||2.6;
+  buildDashboard();buildFilters();renderTable();buildComparePicker();
+  switchView('dashboard');
+  toast(`분석 기록을 불러왔습니다 · ${fullTime(h.time)}`,'ok');
+}
+/* drawer wiring */
+function openDrawer(){renderHistory();$('#drawer').classList.add('open');$('#drawerBackdrop').classList.add('open');}
+function closeDrawer(){$('#drawer').classList.remove('open');$('#drawerBackdrop').classList.remove('open');}
+$('#historyBtn').onclick=openDrawer;
+$('#drawerClose').onclick=closeDrawer;
+$('#drawerBackdrop').onclick=closeDrawer;
+$('#clearHistBtn').onclick=clearHistory;
+$('#newAnalysisBtn').onclick=()=>{closeDrawer();ACTIVE_HID=null;switchView('upload');$('#fileList').innerHTML='';$('#analyzeWrap').classList.add('hidden');const b=$('#analyzeBtn');b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg> AI 분석 시작';toast('새 분석을 시작하세요','');};
+
+/* boot */
+window.addEventListener('load',async()=>{
+  try{await loadHistory();}catch(e){}
+  updateHistBadge();
+  toast(window.TP_LIVE?'실시간 저장 모드로 연결되었습니다 ✦':'데모 모드입니다 · config.js 설정 시 실시간 저장 ✦', window.TP_LIVE?'ok':'');
+});
+</script>
+</body>
+</html>
