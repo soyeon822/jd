@@ -524,8 +524,9 @@ tbody tr:last-child td{border-bottom:none}
           <button class="btn btn-ghost" data-ai="match" style="justify-content:center">🎯 이력서 매칭·부족한 점</button>
           <button class="btn btn-ghost" data-ai="company" style="justify-content:center">🏢 지원 가능 기업 추천</button>
           <button class="btn btn-ghost" data-ai="cover" style="justify-content:center">✍️ 자기소개서 키워드</button>
+          <button class="btn btn-ghost" data-ai="pfreview" style="justify-content:center">📊 포트폴리오 분석</button>
           <button class="btn btn-ghost" data-ai="portfolio" style="justify-content:center">💡 포트폴리오 추천</button>
-          <button class="btn btn-ghost" data-ai="salary" style="justify-content:center;grid-column:1/-1">💰 내 조건 연봉 예측</button>
+          <button class="btn btn-ghost" data-ai="salary" style="justify-content:center">💰 연봉 예측</button>
         </div>
       </div>
     </div>
@@ -1614,26 +1615,47 @@ async function handleResumeFile(file){
 }
 async function runMyTool(kind,btn){
   const resume=$('#myResume').value.trim();
+  const portfolio=$('#myPortfolio').value.trim();
   const box=$('#myResult');
   if(kind!=='salary'&&!needAnalyzed())return;
   if((kind==='match'||kind==='company')&&!resume){toast('이력서를 입력/저장한 뒤 실행하세요','err');return;}
+  if(kind==='pfreview'&&!portfolio){toast('포트폴리오를 입력/링크로 넣은 뒤 실행하세요','err');return;}
   box.innerHTML=`<div class="ai-card"><span class="spinner"></span> AI가 분석 중입니다…</div>`;
   try{
-    if(kind==='match'){ runMatch(resume,true); renderMyMatch(resume); return; }
+    if(kind==='match'){ runMatch((resume+'\n'+portfolio).trim(),true); renderMyMatch(); box.innerHTML=`<div class="ai-card">이력서 매칭 결과를 <b>'이력서 매칭'</b> 탭에 표시했어요. <span class="link" onclick="switchView('resume')">보러가기 →</span></div>`; return; }
     if(kind==='company'){
-      const r=await callAI('company_reco',{resume,market:marketCtx()},btn);
+      const r=await callAI('company_reco',{resume:(resume+'\n'+portfolio).trim(),market:marketCtx()},btn);
       box.innerHTML=renderCompanyReco(r);
     }else if(kind==='cover'){
       const r=await callAI('cover_keywords',{market:marketCtx()},btn);
       box.innerHTML=renderCoverKeywords(r);
+    }else if(kind==='pfreview'){
+      const r=await callAI('portfolio_review',{portfolio,market:marketCtx()},btn);
+      box.innerHTML=renderPortfolioReview(r);
     }else if(kind==='portfolio'){
-      const r=await callAI('portfolio',{resume,market:marketCtx()},btn);
+      const r=await callAI('portfolio',{resume:(resume+'\n'+portfolio).trim(),market:marketCtx()},btn);
       box.innerHTML=renderPortfolio(r);
     }else if(kind==='salary'){
       openSalaryPredict();
       box.innerHTML='';
     }
   }catch(e){ if(e.message!=='demo')box.innerHTML=`<div class="ai-card" style="color:var(--danger)">실패: ${e.message||e}</div>`; else box.innerHTML=''; }
+}
+function renderPortfolioReview(r){
+  if(!r||typeof r!=='object')return `<div class="ai-card">분석 결과를 불러오지 못했습니다.</div>`;
+  const sc=Math.min(Number(r.score)||0,100);
+  const color=sc>=75?'var(--success)':sc>=55?'var(--primary)':'var(--warn)';
+  const list=(arr,ic)=> (arr||[]).map(x=>`<div class="q-item"><div class="qt">${ic} ${x}</div></div>`).join('')||'<div class="qt" style="color:var(--text-3)">-</div>';
+  return `<div class="ai-card"><div class="subhead" style="margin-top:0">📊 포트폴리오 분석</div>
+    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-size:40px;font-weight:800;color:${color}">${sc}<span style="font-size:16px;color:var(--text-3)">/100</span></div>
+      <div style="flex:1;min-width:200px;font-size:14px;color:var(--text-2)">${r.summary||''}</div>
+    </div>
+    <div class="grid two">
+      <div><div class="subhead">✅ 시장과 맞는 강점</div>${list(r.matched&&r.matched.length?r.matched:r.strengths,'•')}</div>
+      <div><div class="subhead">⚠️ 부족·보완할 점</div>${list(r.gaps,'•')}</div>
+    </div>
+    <div class="subhead">💡 개선 제안</div>${list(r.improve,'→')}</div>`;
 }
 function renderMyMatch(resume){
   // 이력서 매칭은 기존 로직 재사용 → 결과를 매칭 탭에 렌더하고 안내
