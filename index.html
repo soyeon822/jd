@@ -440,6 +440,7 @@ tbody tr:last-child td{border-bottom:none}
       <select class="filt" id="f-size"></select>
       <select class="filt" id="f-industry"></select>
       <select class="filt" id="f-stack"></select>
+      <select class="filt" id="f-dup"><option value="">중복 상관없음</option><option value="dup">🔁 중복만</option><option value="uniq">고유만</option></select>
       <button class="btn btn-ghost" id="resetFilt">초기화</button>
     </div>
     <div style="font-size:13px;color:var(--text-3);margin:14px 4px 10px" id="resultCount"></div>
@@ -820,8 +821,13 @@ async function runLiveAnalysis(){
       else{const dataUrl=await fileToDataUrl(f);payload.push({name:f.name,dataUrl});}
       saveRows.push({file_name:f.name,file_path:path});
     }
-    // 2) Edge Function 호출 → 구조화 추출
-    const results=await window.TPDB.analyzeFiles(payload);
+    // 2) Edge Function 호출 → 파일 하나씩 처리(무한로딩·타임아웃 방지 + 진행률)
+    const results=[];
+    for(let i=0;i<payload.length;i++){
+      btn.innerHTML=`<span class="spinner"></span> AI 분석 중… (${i+1}/${payload.length})`;
+      try{ const r=await window.TPDB.analyzeFiles([payload[i]]); if(r&&r.length)results.push(...r); }
+      catch(e){ console.warn('파일 분석 실패',payload[i].name,e); results.push({file_name:payload[i].name,ocr_status:'fail',error:String(e)}); }
+    }
     // 3) 기존 누적 데이터에 병합 (회사|직무 중복 제거) — 덮어쓰지 않고 더함
     if(!STATE.realData){POSTINGS.length=0;}   // 데모 mock 위에 쌓이지 않도록 최초 1회 초기화
     STATE.realData=true;
@@ -1310,10 +1316,10 @@ function buildFilters(){
   fillSelect('#f-size','전 규모',uniq(POSTINGS.map(p=>p.size)));
   fillSelect('#f-industry','전 산업군',uniq(POSTINGS.map(p=>p.industry)));
   fillSelect('#f-stack','전 기술스택',uniq(POSTINGS.flatMap(p=>p.stack)).sort());
-  ['#f-role','#f-region','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).onchange=applyFilters);
+  ['#f-role','#f-region','#f-size','#f-industry','#f-stack','#f-dup'].forEach(id=>$(id).onchange=applyFilters);
   $('#searchInput').oninput=applyFilters;
   initExpFilter();
-  $('#resetFilt').onclick=()=>{['#f-role','#f-region','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).value='');$('#searchInput').value='';resetExpFilter();applyFilters();};
+  $('#resetFilt').onclick=()=>{['#f-role','#f-region','#f-size','#f-industry','#f-stack','#f-dup'].forEach(id=>$(id).value='');$('#searchInput').value='';resetExpFilter();applyFilters();};
   $$('#postTable th[data-sort]').forEach(th=>th.onclick=()=>{
     const k=th.dataset.sort;STATE.sort.dir=STATE.sort.key===k?-STATE.sort.dir:1;STATE.sort.key=k;renderTable();});
 }
@@ -1365,9 +1371,12 @@ function matchExp(p){
 function applyFilters(){
   const q=$('#searchInput').value.trim().toLowerCase();
   const fr=$('#f-role').value,frg=$('#f-region').value,fs=$('#f-size').value,fi=$('#f-industry').value,fst=$('#f-stack').value;
+  const fdup=$('#f-dup')?$('#f-dup').value:'';
+  const dupCount={};POSTINGS.forEach(p=>{const k=(p.company||'')+'|'+(p.role||'');dupCount[k]=(dupCount[k]||0)+1;});
   STATE.filtered=POSTINGS.filter(p=>{
     if(fr&&p.role!==fr)return false;if(frg&&p.region!==frg)return false;if(!matchExp(p))return false;
     if(fs&&p.size!==fs)return false;if(fi&&p.industry!==fi)return false;if(fst&&!p.stack.includes(fst))return false;
+    if(fdup){const c=dupCount[(p.company||'')+'|'+(p.role||'')];if(fdup==='dup'&&c<2)return false;if(fdup==='uniq'&&c>1)return false;}
     if(q){const blob=(p.company+p.role+p.region+p.stack.join(' ')+p.keywords.join(' ')+p.industry).toLowerCase();if(!blob.includes(q))return false;}
     return true;
   });
