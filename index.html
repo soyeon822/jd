@@ -135,6 +135,29 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .map-row.clickable{border-radius:8px;padding:2px 6px;margin:0 -6px 8px;transition:.12s}
 .map-row.clickable:hover{background:var(--bg-2)}
 .click-hint{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--primary);background:var(--primary-tint);padding:5px 12px;border-radius:999px;font-weight:600;margin-top:8px}
+/* AI chat */
+#chatFab{position:fixed;right:24px;bottom:24px;z-index:80;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--violet));color:#fff;box-shadow:var(--shadow-lg);display:grid;place-items:center;transition:.2s}
+#chatFab:hover{transform:translateY(-3px) scale(1.05)}
+#chatPanel{position:fixed;right:24px;bottom:24px;z-index:85;width:380px;max-width:92vw;height:540px;max-height:78vh;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden;animation:pop .2s}
+.chat-head{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.chat-body{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{max-width:86%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.6;white-space:pre-wrap}
+.chat-msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.ai{align-self:flex-start;background:var(--bg-2);color:var(--text);border-bottom-left-radius:4px}
+.chat-msg.ai.think{color:var(--text-3)}
+.chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.chat-input input{flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--bg-2);color:var(--text);outline:none;font-size:14px}
+.chat-input input:focus{border-color:var(--primary)}
+.chat-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.chat-suggest button{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-2)}
+.chat-suggest button:hover{border-color:var(--primary);color:var(--primary)}
+.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px}
+.q-item{padding:12px 0;border-bottom:1px solid var(--border)}
+.q-item:last-child{border:none}
+.q-item .qc{font-size:11px;font-weight:800;color:var(--primary);text-transform:uppercase}
+.q-item .qq{font-weight:700;margin:3px 0 4px}
+.q-item .qt{font-size:13px;color:var(--text-2)}
+@media(max-width:560px){#chatPanel{right:8px;left:8px;width:auto}}
 .tags{display:flex;flex-wrap:wrap;gap:8px}
 .tag{font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--bg-2);color:var(--text-2);border:1px solid var(--border);transition:.15s}
 .tag:hover{border-color:var(--primary);color:var(--primary)}
@@ -161,6 +184,27 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:var(--bg-2);border-radius:10px;padding:9px 12px}
 .search input{border:none;background:none;outline:none;width:100%;color:var(--text);font-size:14px}
 select.filt{appearance:none;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:9px 32px 9px 12px;font-size:13.5px;font-weight:600;color:var(--text-2);cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+button.filt{appearance:none;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--text-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button.filt.has-val{border-color:var(--primary);color:var(--primary);background:var(--primary-tint)}
+.filt-pop-wrap{position:relative;display:inline-block}
+.filt-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:60;width:360px;max-width:92vw;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:18px;display:none;animation:pop .18s}
+.filt-pop.open{display:block}
+.filt-pop .chk-row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.filt-pop label.chk{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text)}
+.filt-pop label.chk input{width:17px;height:17px;accent-color:var(--primary);cursor:pointer}
+.range-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.range-grid button{padding:11px 6px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:600;color:var(--text-2);transition:.12s}
+.range-grid button:hover{border-color:var(--primary);color:var(--primary)}
+.range-grid button.on{background:var(--primary-tint);border-color:var(--primary);color:var(--primary)}
+.pop-divider{border-top:1px solid var(--border);margin:16px 0}
+.custom-row{display:flex;align-items:center;gap:8px;font-size:14px}
+.custom-row .lab{font-weight:600;color:var(--text-2);white-space:nowrap}
+.custom-row input{width:60px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg-2);color:var(--text);font-size:14px;text-align:center;outline:none}
+.custom-row input:focus{border-color:var(--primary)}
+.pop-foot{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+.pop-foot .reset{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text-2);font-weight:600}
+.pop-foot .reset:hover{color:var(--text)}
+.pop-foot .btn-primary{padding:9px 20px}
 
 /* table */
 .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-sm)}
@@ -280,6 +324,7 @@ tbody tr:last-child td{border-bottom:none}
     <button data-view="postings">공고 목록</button>
     <button data-view="compare">기업 비교</button>
     <button data-view="resume">이력서 매칭</button>
+    <button data-view="mypage">마이페이지</button>
   </div>
   <div class="nav-right">
     <button class="icon-btn" id="historyBtn" title="분석 기록" style="position:relative;overflow:visible">
@@ -288,7 +333,7 @@ tbody tr:last-child td{border-bottom:none}
     </button>
     <select class="filt mobile-tabs" id="mobileNav">
       <option value="upload">업로드</option><option value="dashboard">대시보드</option>
-      <option value="postings">공고 목록</option><option value="compare">기업 비교</option><option value="resume">이력서 매칭</option>
+      <option value="postings">공고 목록</option><option value="compare">기업 비교</option><option value="resume">이력서 매칭</option><option value="mypage">마이페이지</option>
     </select>
     <button class="icon-btn" id="themeBtn" title="다크모드">
       <svg id="themeIc" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
@@ -352,7 +397,34 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <select class="filt" id="f-role"></select>
       <select class="filt" id="f-region"></select>
-      <select class="filt" id="f-exp"></select>
+      <div class="filt-pop-wrap">
+        <button class="filt" id="expBtn">경력 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg></button>
+        <div class="filt-pop" id="expPop">
+          <div class="chk-row">
+            <label class="chk"><input type="checkbox" value="신입" />신입</label>
+            <label class="chk"><input type="checkbox" value="경력" />경력</label>
+            <label class="chk"><input type="checkbox" value="경력무관" />경력무관</label>
+          </div>
+          <div class="range-grid" id="expRanges">
+            <button data-lo="1" data-hi="3">1~3년</button>
+            <button data-lo="4" data-hi="6">4~6년</button>
+            <button data-lo="7" data-hi="9">7~9년</button>
+            <button data-lo="10" data-hi="15">10~15년</button>
+            <button data-lo="16" data-hi="20">16~20년</button>
+            <button data-lo="21" data-hi="999">21년 이상</button>
+          </div>
+          <div class="pop-divider"></div>
+          <div class="custom-row"><span class="lab">직접입력</span>
+            <input type="number" id="expMin" min="0" placeholder="" /><span class="lab">년</span>
+            <span class="lab">~</span>
+            <input type="number" id="expMax" min="0" placeholder="" /><span class="lab">년</span>
+          </div>
+          <div class="pop-foot">
+            <button class="reset" id="expReset">↺ 초기화</button>
+            <button class="btn btn-primary" id="expApply">적용하기</button>
+          </div>
+        </div>
+      </div>
       <select class="filt" id="f-size"></select>
       <select class="filt" id="f-industry"></select>
       <select class="filt" id="f-stack"></select>
@@ -400,6 +472,58 @@ tbody tr:last-child td{border-bottom:none}
     <div id="matchResult" style="margin-top:24px"></div>
   </div>
 </section>
+
+<!-- ========== MYPAGE VIEW ========== -->
+<section id="view-mypage" class="view hidden">
+  <div class="container">
+    <h1 style="font-size:24px;font-weight:800;margin-bottom:6px">마이페이지</h1>
+    <p style="color:var(--text-2);margin-bottom:18px">이력서·포트폴리오를 등록하면 저장되고, AI가 채용시장과 비교해 커리어를 코칭합니다.</p>
+
+    <div class="grid two" style="align-items:start">
+      <div class="card">
+        <div class="subhead" style="margin-top:0">📄 이력서 / 보유 스킬</div>
+        <textarea class="textarea" id="myResume" placeholder="경력·보유 기술·프로젝트 등을 붙여넣으세요."></textarea>
+        <div class="subhead">💼 포트폴리오 (선택)</div>
+        <textarea class="textarea" id="myPortfolio" placeholder="포트폴리오·깃허브·프로젝트 설명 등"></textarea>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="mysave">저장</button>
+          <span id="mySaveState" style="font-size:13px;color:var(--text-3);align-self:center"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="subhead" style="margin-top:0">🤖 AI 커리어 도구</div>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">먼저 채용공고를 분석하고, 위 이력서를 저장한 뒤 눌러보세요.</p>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn btn-ghost" data-ai="match" style="justify-content:center">🎯 이력서 매칭·부족한 점</button>
+          <button class="btn btn-ghost" data-ai="company" style="justify-content:center">🏢 지원 가능 기업 추천</button>
+          <button class="btn btn-ghost" data-ai="cover" style="justify-content:center">✍️ 자기소개서 키워드</button>
+          <button class="btn btn-ghost" data-ai="portfolio" style="justify-content:center">💡 포트폴리오 추천</button>
+          <button class="btn btn-ghost" data-ai="salary" style="justify-content:center;grid-column:1/-1">💰 내 조건 연봉 예측</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="myResult" style="margin-top:22px"></div>
+  </div>
+</section>
+
+<!-- AI 챗 플로팅 -->
+<button id="chatFab" title="AI에게 질문하기">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div id="chatPanel" class="hidden">
+  <div class="chat-head">
+    <b>✦ AI에게 질문하기</b>
+    <span style="font-size:11px;color:var(--text-3);font-weight:500">분석된 공고 기준으로 답해요</span>
+    <button class="icon-btn" id="chatClose" style="margin-left:auto;width:30px;height:30px">✕</button>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-input">
+    <input id="chatInput" placeholder="예) 신입이 지원할 만한 공고는?" />
+    <button class="btn btn-primary" id="chatSend" style="padding:9px 14px">전송</button>
+  </div>
+</div>
 
 <!-- HISTORY DRAWER -->
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
@@ -529,6 +653,7 @@ const POSTINGS = [
 const OCR_STATUS = ["ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","ok","dup","fail"];
 
 const STATE = { analyzed:false, filtered:[...POSTINGS], sort:{key:null,dir:1}, compare:[], charts:{}, analyzeSeconds:0 };
+let EXP_FILTER = { types:[], ranges:[] };  // 경력 필터 (사진형 드롭다운)
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -560,7 +685,8 @@ function switchView(v){
   $$('#navTabs button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   $('#mobileNav').value=v;
   window.scrollTo({top:0,behavior:'smooth'});
-  if(v!=='upload'&&!STATE.analyzed){$$('.view').forEach(el=>el.classList.add('hidden'));$('#view-upload').classList.remove('hidden');toast('먼저 채용공고를 분석해주세요','err');}
+  if(v!=='upload'&&v!=='mypage'&&!STATE.analyzed){$$('.view').forEach(el=>el.classList.add('hidden'));$('#view-upload').classList.remove('hidden');toast('먼저 채용공고를 분석해주세요','err');return;}
+  if(v==='mypage')initMypage();
 }
 $$('#navTabs button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
 $('#mobileNav').onchange=e=>switchView(e.target.value);
@@ -674,6 +800,7 @@ async function runLiveAnalysis(){
     toast('분석 실패: '+(e.message||e),'err');
   }
 }
+
 
 function fileExtIcon(name){return name.split('.').pop().toUpperCase();}
 function simulateUpload(){
@@ -834,6 +961,9 @@ function buildDashboard(){
       <div class="chart-card anim"><h4>필수 자격요건 그룹</h4><div class="desc">클러스터링 결과</div><div class="bars" id="reqBars"></div></div>
     </div>
 
+    <div class="section-title"><span class="n">C</span>채용공고 클러스터 (직군별 자동 그룹핑)</div>
+    <div class="grid three" id="clusterWrap"></div>
+
     <div class="section-title"><span class="n">→</span>더 살펴보기</div>
     <div class="grid three">
       <button class="card" style="text-align:left;cursor:pointer" onclick="switchView('postings')"><b>📋 공고 목록 & 필터</b><p class="sub" style="color:var(--text-2);font-size:13px;margin-top:4px">검색·필터·정렬로 개별 공고 탐색</p></button>
@@ -924,6 +1054,42 @@ function renderBarsAndTags(){
     const size=14+(v/kmax)*26;const op=0.55+(v/kmax)*0.45;
     return `<span class="clk" data-k="${k}" style="font-size:${size}px;color:${PAL[i%PAL.length]};opacity:${op}">${k}</span>`;}).join('');
   $$('#keywordCloud span.clk').forEach(s=>s.onclick=()=>showMatch('keywords',s.dataset.k,'키워드'));
+
+  renderClusters();
+}
+
+function jobFamily(role){
+  const r=(role||'').toLowerCase();
+  if(/frontend|프론트|웹\s*퍼블|ui/.test(r))return '프론트엔드';
+  if(/backend|백엔드|서버|server|api/.test(r))return '백엔드';
+  if(/full|풀스택/.test(r))return '풀스택';
+  if(/data\s*eng|데이터\s*엔지/.test(r))return '데이터 엔지니어링';
+  if(/ml|머신|딥러닝|ai|data\s*scient|데이터\s*분석|analyst/.test(r))return 'AI·데이터';
+  if(/devops|sre|infra|인프라|플랫폼|platform|cloud/.test(r))return 'DevOps·인프라';
+  if(/android|안드로이드|ios|모바일|mobile|flutter/.test(r))return '모바일';
+  if(/game|게임/.test(r))return '게임';
+  return '기타';
+}
+function renderClusters(){
+  const groups={};
+  POSTINGS.forEach(p=>{const f=jobFamily(p.role);(groups[f]=groups[f]||[]).push(p);});
+  const entries=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
+  const wrap=$('#clusterWrap');if(!wrap)return;
+  wrap.innerHTML=entries.map(([fam,ps])=>{
+    const topStack=sortedEntries(countBy(ps,p=>p.stack)).slice(0,5);
+    const sal=ps.filter(p=>p.salaryMax>0);
+    const avg=sal.length?Math.round(sal.reduce((a,p)=>a+((p.salaryMin||p.salaryMax)+p.salaryMax)/2,0)/sal.length):0;
+    return `<div class="chart-card cluster-card anim" onclick="showCluster('${fam}')" style="cursor:pointer">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h4 style="margin:0">${fam}</h4><span class="chip">${ps.length}건</span></div>
+      <div class="desc" style="margin:6px 0 10px">평균연봉 ${moneyOrNego(avg)} · 기업 ${uniq(ps.map(p=>p.company)).length}곳</div>
+      <div class="tags">${topStack.map(([s])=>`<span class="mini-tag">${s}</span>`).join('')||'<span class="mini-tag">기술 정보 적음</span>'}</div>
+      <div style="font-size:12px;color:var(--primary);margin-top:10px;font-weight:600">공고 보기 →</div>
+    </div>`;
+  }).join('');
+}
+function showCluster(fam){
+  openPostingList('클러스터 · '+fam, POSTINGS.filter(p=>jobFamily(p.role)===fam));
 }
 
 function prefGroupOf(x){
@@ -1063,21 +1229,66 @@ function fillSelect(id,label,vals){$(id).innerHTML=`<option value="">${label}</o
 function buildFilters(){
   fillSelect('#f-role','전 직무',uniq(POSTINGS.map(p=>p.role)));
   fillSelect('#f-region','전 지역',uniq(POSTINGS.map(p=>p.region)));
-  fillSelect('#f-exp','전 경력',uniq(POSTINGS.map(p=>p.expLabel)));
   fillSelect('#f-size','전 규모',uniq(POSTINGS.map(p=>p.size)));
   fillSelect('#f-industry','전 산업군',uniq(POSTINGS.map(p=>p.industry)));
   fillSelect('#f-stack','전 기술스택',uniq(POSTINGS.flatMap(p=>p.stack)).sort());
-  ['#f-role','#f-region','#f-exp','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).onchange=applyFilters);
+  ['#f-role','#f-region','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).onchange=applyFilters);
   $('#searchInput').oninput=applyFilters;
-  $('#resetFilt').onclick=()=>{['#f-role','#f-region','#f-exp','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).value='');$('#searchInput').value='';applyFilters();};
+  initExpFilter();
+  $('#resetFilt').onclick=()=>{['#f-role','#f-region','#f-size','#f-industry','#f-stack'].forEach(id=>$(id).value='');$('#searchInput').value='';resetExpFilter();applyFilters();};
   $$('#postTable th[data-sort]').forEach(th=>th.onclick=()=>{
     const k=th.dataset.sort;STATE.sort.dir=STATE.sort.key===k?-STATE.sort.dir:1;STATE.sort.key=k;renderTable();});
 }
+
+/* ===== 경력 필터 (사진형 드롭다운) ===== */
+function initExpFilter(){
+  const pop=$('#expPop');if(!pop)return;
+  $('#expBtn').onclick=e=>{e.stopPropagation();pop.classList.toggle('open');};
+  pop.onclick=e=>e.stopPropagation();
+  $$('#expRanges button').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  $('#expApply').onclick=()=>{gatherExp();pop.classList.remove('open');applyFilters();};
+  $('#expReset').onclick=()=>{clearExpUI();EXP_FILTER={types:[],ranges:[]};updateExpBtn();applyFilters();};
+  document.addEventListener('click',e=>{ if(!e.target.closest('.filt-pop-wrap')) pop.classList.remove('open'); });
+}
+function gatherExp(){
+  const types=$$('#expPop .chk input:checked').map(i=>i.value);
+  const ranges=$$('#expRanges button.on').map(b=>[+b.dataset.lo,+b.dataset.hi]);
+  const mn=parseInt($('#expMin').value,10), mx=parseInt($('#expMax').value,10);
+  if(!isNaN(mn)||!isNaN(mx)) ranges.push([isNaN(mn)?0:mn, isNaN(mx)?999:mx]);
+  EXP_FILTER={types,ranges};
+  updateExpBtn();
+}
+function clearExpUI(){
+  $$('#expPop .chk input').forEach(i=>i.checked=false);
+  $$('#expRanges button').forEach(b=>b.classList.remove('on'));
+  if($('#expMin'))$('#expMin').value='';
+  if($('#expMax'))$('#expMax').value='';
+}
+function resetExpFilter(){clearExpUI();EXP_FILTER={types:[],ranges:[]};updateExpBtn();}
+function updateExpBtn(){
+  const n=EXP_FILTER.types.length+EXP_FILTER.ranges.length;
+  const btn=$('#expBtn');if(!btn)return;
+  btn.innerHTML = n
+    ? `경력 · ${n} <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>`
+    : `경력 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>`;
+  btn.classList.toggle('has-val', n>0);
+}
+function matchExp(p){
+  const f=EXP_FILTER;
+  if(!f.types.length && !f.ranges.length) return true;
+  let ok=false;
+  const label=p.expLabel||'';
+  if(f.types.includes('신입') && p.exp===0) ok=true;
+  if(f.types.includes('경력') && p.exp>=1) ok=true;
+  if(f.types.includes('경력무관') && /무관/.test(label)) ok=true;
+  for(const [lo,hi] of f.ranges){ if(p.exp>=lo && p.exp<=hi) ok=true; }
+  return ok;
+}
 function applyFilters(){
   const q=$('#searchInput').value.trim().toLowerCase();
-  const fr=$('#f-role').value,frg=$('#f-region').value,fe=$('#f-exp').value,fs=$('#f-size').value,fi=$('#f-industry').value,fst=$('#f-stack').value;
+  const fr=$('#f-role').value,frg=$('#f-region').value,fs=$('#f-size').value,fi=$('#f-industry').value,fst=$('#f-stack').value;
   STATE.filtered=POSTINGS.filter(p=>{
-    if(fr&&p.role!==fr)return false;if(frg&&p.region!==frg)return false;if(fe&&p.expLabel!==fe)return false;
+    if(fr&&p.role!==fr)return false;if(frg&&p.region!==frg)return false;if(!matchExp(p))return false;
     if(fs&&p.size!==fs)return false;if(fi&&p.industry!==fi)return false;if(fst&&!p.stack.includes(fst))return false;
     if(q){const blob=(p.company+p.role+p.region+p.stack.join(' ')+p.keywords.join(' ')+p.industry).toLowerCase();if(!blob.includes(q))return false;}
     return true;
@@ -1109,6 +1320,11 @@ function showDetail(id){
       <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn btn-primary" onclick="showPlan(${p.id})">🎯 취업 준비 플랜</button>
+        <button class="btn btn-ghost" onclick="showInterview(${p.id})">❓ 면접 질문</button>
+        <button class="btn btn-ghost" onclick="showSimilar(${p.id})">🔗 유사 공고</button>
+      </div>
       <div class="ai-summary" style="margin-bottom:18px;padding:16px">
         <div class="head" style="font-size:14px;margin-bottom:8px"><span>🤖</span> AI 요약</div>
         <p style="font-size:14px">${p.company}의 ${p.role} 포지션은 ${p.stack.slice(0,3).join(', ')} 중심의 ${p.industry} 도메인 채용입니다. ${p.expLabel} 대상이며 ${p.work} 근무, 핵심 우대는 "${p.pref[0]}"입니다.</p>
@@ -1255,6 +1471,183 @@ function runMatch(txt,fromHistory){
       resumeText:txt});
     toast(`Match Score ${scoreClamp}점 산출 완료`,'ok');
   }
+}
+
+/* ================= 커리어 AI 도구 공용 ================= */
+function marketCtx(){ // AI에 넘길 압축 시장 데이터
+  return POSTINGS.map(p=>({company:p.company,role:p.role,region:p.region,exp:p.exp,expLabel:p.expLabel,edu:p.edu,
+    salaryMin:p.salaryMin,salaryMax:p.salaryMax,industry:p.industry,size:p.size,work:p.work,
+    stack:p.stack,framework:p.framework,cloud:p.cloud,db:p.db,soft:p.soft,welfare:p.welfare,pref:p.pref,req:p.req,keywords:p.keywords}));
+}
+async function callAI(task, ctx, btn){
+  if(!window.TP_LIVE){toast('AI 도구는 실시간 모드(Supabase 연결)에서 동작합니다','err');throw new Error('demo');}
+  let prev;
+  if(btn){prev=btn.innerHTML;btn.innerHTML='<span class="spinner"></span> 생성 중…';btn.style.pointerEvents='none';}
+  try{ return await window.TPDB.ai(task, ctx); }
+  finally{ if(btn){btn.innerHTML=prev;btn.style.pointerEvents='auto';} }
+}
+function needAnalyzed(){ if(!STATE.analyzed){toast('먼저 채용공고를 분석해주세요','err');return false;} return true; }
+
+/* ================= 마이페이지 ================= */
+let MY_PROFILE={resume_text:'',portfolio_text:''};
+let myInited=false;
+async function initMypage(){
+  if(myInited)return;myInited=true;
+  try{MY_PROFILE=await window.TPDB.loadProfile()||MY_PROFILE;}catch(e){console.warn(e);}
+  $('#myResume').value=MY_PROFILE.resume_text||'';
+  $('#myPortfolio').value=MY_PROFILE.portfolio_text||'';
+  $('#mysave').onclick=async()=>{
+    MY_PROFILE={resume_text:$('#myResume').value.trim(),portfolio_text:$('#myPortfolio').value.trim()};
+    try{await window.TPDB.saveProfile(MY_PROFILE);$('#mySaveState').textContent='✓ 저장됨 '+new Date().toLocaleTimeString('ko-KR');toast('프로필을 저장했습니다','ok');}
+    catch(e){toast('저장 실패: '+(e.message||e),'err');}
+  };
+  $$('#view-mypage [data-ai]').forEach(b=>b.onclick=()=>runMyTool(b.dataset.ai,b));
+}
+async function runMyTool(kind,btn){
+  const resume=$('#myResume').value.trim();
+  const box=$('#myResult');
+  if(kind!=='salary'&&!needAnalyzed())return;
+  if((kind==='match'||kind==='company')&&!resume){toast('이력서를 입력/저장한 뒤 실행하세요','err');return;}
+  box.innerHTML=`<div class="ai-card"><span class="spinner"></span> AI가 분석 중입니다…</div>`;
+  try{
+    if(kind==='match'){ runMatch(resume,true); renderMyMatch(resume); return; }
+    if(kind==='company'){
+      const r=await callAI('company_reco',{resume,market:marketCtx()},btn);
+      box.innerHTML=renderCompanyReco(r);
+    }else if(kind==='cover'){
+      const r=await callAI('cover_keywords',{market:marketCtx()},btn);
+      box.innerHTML=renderCoverKeywords(r);
+    }else if(kind==='portfolio'){
+      const r=await callAI('portfolio',{resume,market:marketCtx()},btn);
+      box.innerHTML=renderPortfolio(r);
+    }else if(kind==='salary'){
+      openSalaryPredict();
+      box.innerHTML='';
+    }
+  }catch(e){ if(e.message!=='demo')box.innerHTML=`<div class="ai-card" style="color:var(--danger)">실패: ${e.message||e}</div>`; else box.innerHTML=''; }
+}
+function renderMyMatch(resume){
+  // 이력서 매칭은 기존 로직 재사용 → 결과를 매칭 탭에 렌더하고 안내
+  $('#myResult').innerHTML=`<div class="ai-card">이력서 매칭 결과를 <b>'이력서 매칭'</b> 탭에 표시했어요. <span class="link" onclick="switchView('resume')">보러가기 →</span></div>`;
+}
+function renderCompanyReco(r){
+  const list=(r&&r.reco)||[];
+  if(!list.length)return `<div class="ai-card">추천 결과가 없습니다.</div>`;
+  return `<div class="ai-card"><div class="subhead" style="margin-top:0">🏢 지원 가능 기업 추천</div>
+    <div class="tbl-wrap"><table><thead><tr><th>회사</th><th>직무</th><th>적합도</th><th>이유</th><th>보완점</th></tr></thead><tbody>
+    ${list.map(x=>`<tr><td><b>${x.company||''}</b></td><td>${x.role||''}</td>
+      <td><div class="bar-track" style="width:80px;display:inline-block;vertical-align:middle"><i style="width:${Math.min(x.fit||0,100)}%"></i></div> <b style="font-size:12px">${x.fit||0}</b></td>
+      <td style="white-space:normal;max-width:260px">${x.reason||''}</td><td style="white-space:normal;max-width:200px;color:var(--text-3)">${x.toImprove||''}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+function renderCoverKeywords(r){
+  const kws=(r&&r.keywords)||[];const tips=(r&&r.tips)||[];
+  return `<div class="ai-card"><div class="subhead" style="margin-top:0">✍️ 자기소개서 핵심 키워드</div>
+    <div class="tags" style="margin-bottom:14px">${kws.map(k=>`<span class="tag" title="${(k.why||'').replace(/"/g,'')}">${k.k||k}</span>`).join('')}</div>
+    ${kws.map(k=>`<div class="q-item"><div class="qq">${k.k||''}</div><div class="qt">${k.why||''}</div></div>`).join('')}
+    ${tips.length?`<div class="subhead">작성 팁</div><ul style="margin-left:18px;color:var(--text-2);font-size:14px;line-height:1.9">${tips.map(t=>`<li>${t}</li>`).join('')}</ul>`:''}</div>`;
+}
+function renderPortfolio(r){
+  const ps=(r&&r.projects)||[];
+  if(!ps.length)return `<div class="ai-card">추천 결과가 없습니다.</div>`;
+  return `<div class="ai-card"><div class="subhead" style="margin-top:0">💡 추천 포트폴리오 프로젝트</div>
+    <div class="grid two">${ps.map(p=>`<div class="card" style="box-shadow:none">
+      <div style="display:flex;gap:8px;align-items:center"><b>${p.title||''}</b><span class="chip">${p.level||''}</span></div>
+      <p style="font-size:13.5px;color:var(--text-2);margin:8px 0">${p.desc||''}</p>
+      <div class="tags">${(p.skills||[]).map(s=>`<span class="mini-tag">${s}</span>`).join('')}</div></div>`).join('')}</div></div>`;
+}
+function openSalaryPredict(){
+  openModal(`<div class="modal-head"><div><h3>💰 연봉 예측</h3><div class="sub">조건을 넣으면 시장 데이터 기반으로 추정합니다</div></div>
+    <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="detail-grid" style="margin-bottom:14px">
+        <div class="f"><div class="k">직무</div><input id="spRole" class="textarea" style="min-height:0;padding:9px 12px" placeholder="예: 백엔드 개발자"/></div>
+        <div class="f"><div class="k">경력(년)</div><input id="spExp" type="number" class="textarea" style="min-height:0;padding:9px 12px" placeholder="3"/></div>
+        <div class="f"><div class="k">지역</div><input id="spRegion" class="textarea" style="min-height:0;padding:9px 12px" placeholder="서울 강남"/></div>
+        <div class="f"><div class="k">주요 기술(쉼표)</div><input id="spStack" class="textarea" style="min-height:0;padding:9px 12px" placeholder="Java, Spring"/></div>
+      </div>
+      <button class="btn btn-primary" id="spGo">예측하기</button>
+      <div id="spResult" style="margin-top:16px"></div>
+    </div>`);
+  $('#spGo').onclick=async()=>{
+    const query={role:$('#spRole').value,exp:+$('#spExp').value||0,region:$('#spRegion').value,stack:$('#spStack').value.split(',').map(s=>s.trim()).filter(Boolean)};
+    try{
+      const r=await callAI('salary_predict',{query,market:marketCtx()},$('#spGo'));
+      $('#spResult').innerHTML=`<div class="ai-card" style="margin:0">
+        <div style="display:flex;gap:16px;text-align:center;flex-wrap:wrap">
+          <div style="flex:1"><div class="lab" style="color:var(--text-3);font-size:12px">최소</div><div style="font-size:22px;font-weight:800">${moneyOrNego(r.min)}</div></div>
+          <div style="flex:1"><div class="lab" style="color:var(--text-3);font-size:12px">예상(중앙)</div><div style="font-size:26px;font-weight:800;color:var(--primary)">${moneyOrNego(r.median)}</div></div>
+          <div style="flex:1"><div class="lab" style="color:var(--text-3);font-size:12px">최대</div><div style="font-size:22px;font-weight:800">${moneyOrNego(r.max)}</div></div>
+        </div>
+        <p style="font-size:13px;color:var(--text-2);margin-top:12px">${r.rationale||''}</p>
+        <p style="font-size:11.5px;color:var(--text-3);margin-top:8px">※ 업로드된 공고 표본 기반 추정치로, 실제와 다를 수 있습니다.</p></div>`;
+    }catch(e){ if(e.message!=='demo')$('#spResult').innerHTML=`<div style="color:var(--danger)">실패: ${e.message||e}</div>`; }
+  };
+}
+
+/* ================= AI 챗 ================= */
+let chatHist=[];
+$('#chatFab').onclick=()=>{$('#chatPanel').classList.remove('hidden');$('#chatFab').classList.add('hidden');
+  if(!$('#chatBody').childElementCount)chatWelcome();$('#chatInput').focus();};
+$('#chatClose').onclick=()=>{$('#chatPanel').classList.add('hidden');$('#chatFab').classList.remove('hidden');};
+$('#chatSend').onclick=sendChat;
+$('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+function chatWelcome(){
+  addChat('ai','안녕하세요! 분석된 채용공고를 기준으로 궁금한 걸 물어보세요.');
+  const sug=['가장 많이 요구되는 기술은?','신입이 지원할 만한 공고는?','평균 연봉이 높은 직무는?'];
+  const wrap=document.createElement('div');wrap.className='chat-suggest';
+  sug.forEach(s=>{const b=document.createElement('button');b.textContent=s;b.onclick=()=>{$('#chatInput').value=s;sendChat();};wrap.appendChild(b);});
+  $('#chatBody').appendChild(wrap);
+}
+function addChat(role,text){const d=document.createElement('div');d.className='chat-msg '+role;d.textContent=text;$('#chatBody').appendChild(d);$('#chatBody').scrollTop=1e9;return d;}
+async function sendChat(){
+  const q=$('#chatInput').value.trim();if(!q)return;
+  if(!STATE.analyzed){toast('먼저 채용공고를 분석해주세요','err');return;}
+  $('#chatInput').value='';addChat('user',q);
+  const think=addChat('ai think','생각 중…');
+  try{
+    const ans=await window.TPDB.ai('chat',{question:q,market:marketCtx()});
+    think.classList.remove('think');think.textContent=typeof ans==='string'?ans:JSON.stringify(ans);
+  }catch(e){think.classList.remove('think');think.textContent=window.TP_LIVE?('오류: '+(e.message||e)):'AI 챗은 실시간 모드(Supabase 연결)에서 동작합니다.';}
+  $('#chatBody').scrollTop=1e9;
+}
+
+/* ================= 유사 공고 / 면접 / 플랜 (상세 액션) ================= */
+function jaccard(a,b){const A=new Set(a),B=new Set(b);const inter=[...A].filter(x=>B.has(x)).length;const uni=new Set([...a,...b]).size||1;return inter/uni;}
+function similarPostings(p){
+  return POSTINGS.filter(x=>x.id!==p.id).map(x=>({x,s:jaccard(p.stack,x.stack)*0.7+(x.role===p.role?0.3:0)+(x.industry===p.industry?0.1:0)}))
+    .sort((a,b)=>b.s-a.s).slice(0,5).filter(o=>o.s>0);
+}
+function showSimilar(id){
+  const p=POSTINGS.find(x=>x.id===id);const sims=similarPostings(p);
+  openPostingList(`🔗 ${p.company} · ${p.role} 와 유사한 공고`, sims.map(o=>o.x));
+}
+async function showInterview(id){
+  const p=POSTINGS.find(x=>x.id===id);
+  openModal(`<div class="modal-head"><div><h3>❓ 예상 면접 질문</h3><div class="sub">${p.company} · ${p.role}</div></div>
+    <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="ivBody"><div class="ai-card"><span class="spinner"></span> 질문 생성 중…</div></div>`);
+  try{
+    const r=await window.TPDB.ai('interview',{posting:p.data||p});
+    const qs=(r&&r.questions)||[];
+    $('#ivBody').innerHTML=`<div class="ai-card" style="margin:0">${qs.map(q=>`<div class="q-item"><div class="qc">${q.category||''}</div><div class="qq">${q.q||''}</div><div class="qt">💡 ${q.tip||''}</div></div>`).join('')||'생성 실패'}</div>`;
+  }catch(e){$('#ivBody').innerHTML=`<div class="ai-card">${window.TP_LIVE?('실패: '+(e.message||e)):'면접 질문 생성은 실시간 모드(Supabase 연결)에서 동작합니다.'}</div>`;}
+}
+async function showPlan(id){
+  const p=POSTINGS.find(x=>x.id===id);
+  const resume=(MY_PROFILE&&MY_PROFILE.resume_text)||$('#myResume')?.value||'';
+  openModal(`<div class="modal-head"><div><h3>🎯 취업 준비 플랜 (4주)</h3><div class="sub">${p.company} · ${p.role}</div></div>
+    <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="planBody"><div class="ai-card"><span class="spinner"></span> 플랜 생성 중…</div></div>`);
+  try{
+    const r=await window.TPDB.ai('prep_plan',{posting:p.data||p,resume});
+    const weeks=(r&&r.weeks)||[];const pr=(r&&r.priority)||[];
+    $('#planBody').innerHTML=`<div class="ai-card" style="margin:0">
+      ${r&&r.summary?`<p style="font-size:14px;color:var(--text-2);margin-bottom:14px">${r.summary}</p>`:''}
+      ${pr.length?`<div class="subhead" style="margin-top:0">먼저 할 것</div><div class="tags" style="margin-bottom:14px">${pr.map(x=>`<span class="tag" style="border-color:var(--primary);color:var(--primary)">${x}</span>`).join('')}</div>`:''}
+      ${weeks.map(w=>`<div class="plan-step"><div class="pn">${w.week||''}주</div><div><b>${w.focus||''}</b><ul style="margin:6px 0 0 18px;color:var(--text-2);font-size:13.5px;line-height:1.8">${(w.tasks||[]).map(t=>`<li>${t}</li>`).join('')}</ul></div></div>`).join('')}
+    </div>`;
+  }catch(e){$('#planBody').innerHTML=`<div class="ai-card">${window.TP_LIVE?('실패: '+(e.message||e)):'취업 준비 플랜은 실시간 모드(Supabase 연결)에서 동작합니다.'}</div>`;}
 }
 
 /* ================= HISTORY (GPT-style) ================= */
