@@ -205,6 +205,12 @@ button.filt.has-val{border-color:var(--primary);color:var(--primary);background:
 .pop-foot .reset{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text-2);font-weight:600}
 .pop-foot .reset:hover{color:var(--text)}
 .pop-foot .btn-primary{padding:9px 20px}
+.filt-pop.ms{width:240px;padding:8px}
+.ms-list{max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.ms-list label{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--text)}
+.ms-list label:hover{background:var(--bg-2)}
+.ms-list input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
+button.filt>span{white-space:nowrap}
 
 /* table */
 .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-sm)}
@@ -407,8 +413,7 @@ tbody tr:last-child td{border-bottom:none}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
         <input id="searchInput" placeholder="회사, 직무, 기술스택, 키워드 검색…" />
       </div>
-      <select class="filt" id="f-role"></select>
-      <select class="filt" id="f-region"></select>
+      <span id="msFilters" style="display:contents"></span>
       <div class="filt-pop-wrap">
         <button class="filt" id="expBtn">경력 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg></button>
         <div class="filt-pop" id="expPop">
@@ -437,9 +442,6 @@ tbody tr:last-child td{border-bottom:none}
           </div>
         </div>
       </div>
-      <select class="filt" id="f-size"></select>
-      <select class="filt" id="f-industry"></select>
-      <select class="filt" id="f-stack"></select>
       <select class="filt" id="f-dup"><option value="">중복 상관없음</option><option value="dup">🔁 중복만</option><option value="uniq">고유만</option></select>
       <button class="btn btn-ghost" id="resetFilt">초기화</button>
     </div>
@@ -1309,17 +1311,54 @@ function rerenderCharts(){
 }
 
 /* FILTERS + TABLE */
-function fillSelect(id,label,vals){$(id).innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option>${v}</option>`).join('');}
+/* ===== 다중선택 필터 ===== */
+const SALARY_BUCKETS=[
+  {label:'~3,000만',min:0,max:2999},
+  {label:'3,000~5,000만',min:3000,max:4999},
+  {label:'5,000~7,000만',min:5000,max:6999},
+  {label:'7,000~1억',min:7000,max:9999},
+  {label:'1억 이상',min:10000,max:Infinity},
+];
+const MS_DEFS=[
+  {field:'role',label:'직무',vals:()=>uniq(POSTINGS.map(p=>p.role))},
+  {field:'region',label:'지역',vals:()=>uniq(POSTINGS.map(p=>p.region))},
+  {field:'size',label:'규모',vals:()=>uniq(POSTINGS.map(p=>p.size))},
+  {field:'industry',label:'산업군',vals:()=>uniq(POSTINGS.map(p=>p.industry))},
+  {field:'stack',label:'기술스택',array:true,vals:()=>uniq(POSTINGS.flatMap(p=>p.stack)).sort()},
+  {field:'salary',label:'연봉',salary:true,vals:()=>SALARY_BUCKETS.map(b=>b.label)},
+  {field:'work',label:'재택근무',vals:()=>uniq(POSTINGS.map(p=>p.work))},
+];
+const FILTERS={};MS_DEFS.forEach(d=>FILTERS[d.field]=new Set());
+function msLabel(d){const n=FILTERS[d.field].size;return n?`${d.label} · ${n}`:d.label;}
+function salaryInBucket(p,label){const b=SALARY_BUCKETS.find(x=>x.label===label);if(!b)return false;const v=repSalary(p);return v>=b.min&&v<=b.max;}
+
 function buildFilters(){
-  fillSelect('#f-role','전 직무',uniq(POSTINGS.map(p=>p.role)));
-  fillSelect('#f-region','전 지역',uniq(POSTINGS.map(p=>p.region)));
-  fillSelect('#f-size','전 규모',uniq(POSTINGS.map(p=>p.size)));
-  fillSelect('#f-industry','전 산업군',uniq(POSTINGS.map(p=>p.industry)));
-  fillSelect('#f-stack','전 기술스택',uniq(POSTINGS.flatMap(p=>p.stack)).sort());
-  ['#f-role','#f-region','#f-size','#f-industry','#f-stack','#f-dup'].forEach(id=>$(id).onchange=applyFilters);
+  const host=$('#msFilters');host.innerHTML='';
+  MS_DEFS.forEach(d=>{
+    const vals=d.vals();
+    const wrap=document.createElement('div');wrap.className='filt-pop-wrap';
+    wrap.innerHTML=`<button class="filt"><span>${d.label} </span><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg></button>
+      <div class="filt-pop ms"><div class="ms-list">${vals.length?vals.map(v=>`<label><input type="checkbox" value="${String(v).replace(/"/g,'&quot;')}"/> ${v}</label>`).join(''):'<div style="color:var(--text-3);font-size:13px;padding:8px">항목 없음</div>'}</div></div>`;
+    host.appendChild(wrap);
+    const btn=wrap.querySelector('.filt'),pop=wrap.querySelector('.filt-pop');
+    btn.onclick=e=>{e.stopPropagation();$$('.filt-pop.ms.open').forEach(p=>{if(p!==pop)p.classList.remove('open');});pop.classList.toggle('open');};
+    pop.onclick=e=>e.stopPropagation();
+    wrap.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{
+      if(cb.checked)FILTERS[d.field].add(cb.value);else FILTERS[d.field].delete(cb.value);
+      btn.querySelector('span').textContent=msLabel(d)+' ';btn.classList.toggle('has-val',FILTERS[d.field].size>0);
+      applyFilters();
+    });
+  });
+  document.addEventListener('click',()=>$$('.filt-pop.ms.open').forEach(p=>p.classList.remove('open')));
+  $('#f-dup').onchange=applyFilters;
   $('#searchInput').oninput=applyFilters;
   initExpFilter();
-  $('#resetFilt').onclick=()=>{['#f-role','#f-region','#f-size','#f-industry','#f-stack','#f-dup'].forEach(id=>$(id).value='');$('#searchInput').value='';resetExpFilter();applyFilters();};
+  $('#resetFilt').onclick=()=>{
+    MS_DEFS.forEach(d=>FILTERS[d.field].clear());
+    $$('#msFilters input[type=checkbox]').forEach(c=>c.checked=false);
+    $$('#msFilters .filt').forEach((b,i)=>{b.classList.remove('has-val');b.querySelector('span').textContent=MS_DEFS[i].label+' ';});
+    $('#f-dup').value='';$('#searchInput').value='';resetExpFilter();applyFilters();
+  };
   $$('#postTable th[data-sort]').forEach(th=>th.onclick=()=>{
     const k=th.dataset.sort;STATE.sort.dir=STATE.sort.key===k?-STATE.sort.dir:1;STATE.sort.key=k;renderTable();});
 }
@@ -1370,12 +1409,16 @@ function matchExp(p){
 }
 function applyFilters(){
   const q=$('#searchInput').value.trim().toLowerCase();
-  const fr=$('#f-role').value,frg=$('#f-region').value,fs=$('#f-size').value,fi=$('#f-industry').value,fst=$('#f-stack').value;
   const fdup=$('#f-dup')?$('#f-dup').value:'';
   const dupCount={};POSTINGS.forEach(p=>{const k=(p.company||'')+'|'+(p.role||'');dupCount[k]=(dupCount[k]||0)+1;});
   STATE.filtered=POSTINGS.filter(p=>{
-    if(fr&&p.role!==fr)return false;if(frg&&p.region!==frg)return false;if(!matchExp(p))return false;
-    if(fs&&p.size!==fs)return false;if(fi&&p.industry!==fi)return false;if(fst&&!p.stack.includes(fst))return false;
+    for(const d of MS_DEFS){
+      const sel=FILTERS[d.field]; if(!sel.size)continue;
+      if(d.salary){ if(![...sel].some(l=>salaryInBucket(p,l)))return false; }
+      else if(d.array){ if(!(p[d.field]||[]).some(v=>sel.has(v)))return false; }
+      else { if(!sel.has(p[d.field]))return false; }
+    }
+    if(!matchExp(p))return false;
     if(fdup){const c=dupCount[(p.company||'')+'|'+(p.role||'')];if(fdup==='dup'&&c<2)return false;if(fdup==='uniq'&&c>1)return false;}
     if(q){const blob=(p.company+p.role+p.region+p.stack.join(' ')+p.keywords.join(' ')+p.industry).toLowerCase();if(!blob.includes(q))return false;}
     return true;
