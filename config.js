@@ -10,6 +10,6 @@
 // anon key 는 공개용이라 GitHub 에 올려도 되지만, service_role 키는 절대 넣지 마세요.
 // =====================================================================
 window.TP_CONFIG = {
-  SUPABASE_URL: "YOUR_SUPABASE_URL",          // 예: https://abcdefgh.supabase.co
-  SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY" // 예: eyJhbGciOi...
+  SUPABASE_URL: "https://edtppxxktzwxyietihbd.supabase.co", 
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkdHBweHhrdHp3eHlpZXRpaGJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2Mjk5NTUsImV4cCI6MjEwMDIwNTk1NX0.IhQ4l0iZjkhm6eFVCAWFI6qxmg4HUCsa-XQU39jaeH0"
 };
