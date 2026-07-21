@@ -216,6 +216,18 @@ tbody tr{transition:.12s}
 tbody tr:hover{background:var(--bg-2)}
 tbody tr:last-child td{border-bottom:none}
 .chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--primary-tint);color:var(--primary)}
+.dd{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:7px;white-space:nowrap;display:inline-block}
+.dd-soon{background:rgba(220,38,38,.13);color:var(--danger)}
+.dd-today{background:var(--danger);color:#fff}
+.dd-normal{background:var(--bg-2);color:var(--text-2)}
+.dd-open{background:rgba(22,163,74,.12);color:var(--success)}
+.dd-closed{background:var(--bg-2);color:var(--text-3);text-decoration:line-through}
+.deadline-alert{background:linear-gradient(135deg,rgba(220,38,38,.10),transparent);border:1px solid var(--border);border-left:4px solid var(--danger);border-radius:var(--radius);padding:18px 20px}
+.deadline-alert .row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed var(--border);cursor:pointer;transition:.12s}
+.deadline-alert .row:last-child{border-bottom:none}
+.deadline-alert .row:hover{opacity:.75}
+.deadline-alert .row .nm{font-weight:700;font-size:14px}
+.deadline-alert .row .meta{font-size:12.5px;color:var(--text-3)}
 .mini-tag{font-size:11px;padding:2px 7px;border-radius:6px;background:var(--bg-2);color:var(--text-2);margin-right:4px}
 .link{color:var(--primary);font-weight:700;cursor:pointer}
 .link:hover{text-decoration:underline}
@@ -436,7 +448,7 @@ tbody tr:last-child td{border-bottom:none}
         <thead><tr>
           <th data-sort="company">회사</th><th data-sort="role">직무</th><th data-sort="region">지역</th>
           <th data-sort="exp">경력</th><th data-sort="salaryMax">연봉(최대)</th><th data-sort="size">규모</th>
-          <th data-sort="industry">산업군</th><th>기술스택</th><th></th>
+          <th data-sort="industry">산업군</th><th data-sort="_dday">마감</th><th>기술스택</th><th></th>
         </tr></thead>
         <tbody id="postBody"></tbody>
       </table>
@@ -662,6 +674,26 @@ function countBy(list, fn){const m={};list.forEach(p=>{const v=fn(p);(Array.isAr
 function sortedEntries(obj){return Object.entries(obj).sort((a,b)=>b[1]-a[1]);}
 function median(arr){const s=[...arr].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
 function fmtMoney(v){return v.toLocaleString('ko-KR')+"만";}
+/* ===== 마감일 / D-day ===== */
+function ddayInfo(p){
+  const raw=p.deadline;
+  if(!raw||/상시|무관|채용시|수시/.test(raw))return{open:true,label:'상시',days:null,status:'open'};
+  const d=new Date(raw);if(isNaN(d))return{open:true,label:String(raw),days:null,status:'open'};
+  const today=new Date();today.setHours(0,0,0,0);d.setHours(0,0,0,0);
+  const days=Math.round((d-today)/86400000);
+  if(days<0)return{open:false,days,label:'마감',status:'closed',date:raw};
+  if(days===0)return{open:false,days,label:'D-DAY',status:'today',date:raw};
+  if(days<=7)return{open:false,days,label:'D-'+days,status:'soon',date:raw};
+  return{open:false,days,label:'D-'+days,status:'normal',date:raw};
+}
+function ddayBadge(p){const i=ddayInfo(p);return `<span class="dd dd-${i.status}">${i.label}</span>`;}
+function seedDemoDeadlines(){
+  const off=[3,6,1,14,-2,30,9,5,null,2,11,45,4,8,null,7];
+  const today=new Date();today.setHours(0,0,0,0);
+  POSTINGS.forEach((p,i)=>{ if(p.deadline)return; const o=off[i%off.length];
+    if(o===null){p.deadline='상시';}
+    else{const d=new Date(today);d.setDate(d.getDate()+o);p.deadline=d.toISOString().slice(0,10);} });
+}
 function toast(msg,type=""){const t=document.createElement('div');t.className='toast '+type;t.innerHTML=`<span>${type==='ok'?'✅':type==='err'?'⚠️':'✦'}</span><span>${msg}</span>`;$('#toasts').appendChild(t);setTimeout(()=>{t.style.opacity=0;t.style.transform='translateX(20px)';setTimeout(()=>t.remove(),300);},3200);}
 
 const PAL=['#2563eb','#7c3aed','#0891b2','#db2777','#16a34a','#d97706','#dc2626','#0ea5e9','#8b5cf6','#14b8a6','#f43f5e','#f59e0b'];
@@ -743,7 +775,7 @@ function arr(v){return Array.isArray(v)?v:(v?[v]:[]);}
 function normalizePosting(d,id){
   return {id,company:d.company||'미상',role:d.role||'미상',region:d.region||'미상',
     exp:Number(d.exp)||0,expLabel:d.expLabel||(Number(d.exp)?`경력 ${d.exp}년+`:'신입'),
-    edu:d.edu||'무관',employ:d.employ||'정규직',salaryMin:Number(d.salaryMin)||0,salaryMax:Number(d.salaryMax)||0,
+    edu:d.edu||'무관',employ:d.employ||'정규직',deadline:d.deadline||'',salaryMin:Number(d.salaryMin)||0,salaryMax:Number(d.salaryMax)||0,
     industry:d.industry||'기타',size:d.size||'미상',work:d.work||'출근',
     stack:arr(d.stack),lang:arr(d.lang),framework:arr(d.framework),cloud:arr(d.cloud),db:arr(d.db),
     tools:arr(d.tools),soft:arr(d.soft),welfare:arr(d.welfare),certs:arr(d.certs),
@@ -868,8 +900,8 @@ $('#exportBtn').onclick=()=>{
     </div>`);
 };
 function exportCSV(kind){
-  const cols=['회사','직무','지역','경력','학력','고용형태','최소연봉','최대연봉','산업군','규모','근무방식','기술스택'];
-  const rows=POSTINGS.map(p=>[p.company,p.role,p.region,p.expLabel,p.edu,p.employ,p.salaryMin,p.salaryMax,p.industry,p.size,p.work,p.stack.join(' | ')]);
+  const cols=['회사','직무','지역','경력','학력','고용형태','마감일','최소연봉','최대연봉','산업군','규모','근무방식','기술스택'];
+  const rows=POSTINGS.map(p=>[p.company,p.role,p.region,p.expLabel,p.edu,p.employ,(ddayInfo(p).open?'상시':ddayInfo(p).date||''),p.salaryMin,p.salaryMax,p.industry,p.size,p.work,p.stack.join(' | ')]);
   const csv='﻿'+[cols.join(','),...rows.map(r=>r.map(c=>`"${c}"`).join(','))].join('\n');
   const blob=new Blob([csv],{type:kind==='excel'?'application/vnd.ms-excel':'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='talentpulse_export.'+(kind==='excel'?'xls':'csv');a.click();
@@ -887,8 +919,11 @@ function buildDashboard(){
   const avgStack=(POSTINGS.reduce((s,p)=>s+p.stack.length,0)/POSTINGS.length).toFixed(1);
   const avgExp=(POSTINGS.reduce((s,p)=>s+p.exp,0)/POSTINGS.length).toFixed(1);
   const avgSalary=Math.round(POSTINGS.reduce((s,p)=>s+(p.salaryMin+p.salaryMax)/2,0)/POSTINGS.length);
+  const soonList=POSTINGS.filter(p=>{const i=ddayInfo(p);return !i.open&&i.days>=0&&i.days<=7;})
+    .sort((a,b)=>ddayInfo(a).days-ddayInfo(b).days);
   const kpis=[
     ['총 공고 수',POSTINGS.length,'건','📋'],['분석 성공',ok,'건','✅'],['기업 수',companies,'개','🏢'],
+    ['마감 임박(7일)',soonList.length,'건','⏰'],
     ['평균 요구기술',avgStack,'개','🧩'],['평균 경력',avgExp,'년','📈'],['평균 연봉',fmtMoney(avgSalary),'','💰'],
     ['분석 시간',STATE.analyzeSeconds.toFixed(1),'초','⚡']
   ];
@@ -904,6 +939,7 @@ function buildDashboard(){
 
     <div class="section-title"><span class="n">K</span>핵심 지표 (KPI)</div>
     <div class="grid kpis" id="kpiGrid"></div>
+    <div id="deadlineAlert" style="margin-top:16px"></div>
 
     <div class="section-title"><span class="n">19</span>AI Summary — 채용시장 요약</div>
     <div class="ai-summary anim">
@@ -978,6 +1014,7 @@ function buildDashboard(){
       <div class="lab">${k[0]}</div>
       <div class="val">${k[1]}<small> ${k[2]}</small></div>
     </div>`).join('');
+  renderDeadlineAlert(soonList);
 
   typeText($('#aiSummaryText'), AI_SUMMARY);
   renderInsights();
@@ -1058,6 +1095,20 @@ function renderBarsAndTags(){
   renderClusters();
 }
 
+function renderDeadlineAlert(soonList){
+  const box=$('#deadlineAlert');if(!box)return;
+  if(!soonList||!soonList.length){box.innerHTML='';return;}
+  box.innerHTML=`<div class="deadline-alert anim">
+    <div style="display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:8px">⏰ 마감 임박 공고 <span class="chip" style="background:rgba(220,38,38,.12);color:var(--danger)">${soonList.length}건</span>
+    <span style="font-size:12px;color:var(--text-3);font-weight:500">7일 이내 마감</span></div>
+    ${soonList.slice(0,6).map(p=>`<div class="row" onclick="showDetail(${p.id})">
+      ${ddayBadge(p)}
+      <div style="flex:1;min-width:0"><div class="nm">${p.company} · ${p.role}</div>
+      <div class="meta">${p.region} · 마감 ${ddayInfo(p).date}</div></div>
+      <span class="link">상세 →</span></div>`).join('')}
+    ${soonList.length>6?`<div style="font-size:12px;color:var(--text-3);margin-top:8px;text-align:center">그 외 ${soonList.length-6}건 더 · 공고 목록에서 확인</div>`:''}
+  </div>`;
+}
 function jobFamily(role){
   const r=(role||'').toLowerCase();
   if(/frontend|프론트|웹\s*퍼블|ui/.test(r))return '프론트엔드';
@@ -1298,7 +1349,10 @@ function applyFilters(){
 function renderTable(){
   let rows=[...STATE.filtered];
   if(STATE.sort.key){const k=STATE.sort.key,d=STATE.sort.dir;
-    rows.sort((a,b)=>{let x=a[k],y=b[k];if(typeof x==='string')return x.localeCompare(y)*d;return (x-y)*d;});}
+    const ddNum=p=>{const i=ddayInfo(p);return i.open?99999:i.days;};
+    rows.sort((a,b)=>{
+      if(k==='_dday')return (ddNum(a)-ddNum(b))*d;
+      let x=a[k],y=b[k];if(typeof x==='string')return x.localeCompare(y)*d;return (x-y)*d;});}
   $('#resultCount').textContent=`${rows.length}개 공고 표시 중 (전체 ${POSTINGS.length}개)`;
   const body=$('#postBody');
   if(!rows.length){body.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ic">🔍</div><b>결과가 없습니다</b><p>필터를 조정해 보세요</p></div></td></tr>`;return;}
@@ -1306,6 +1360,7 @@ function renderTable(){
     <tr>
       <td><b>${p.company}</b></td><td>${p.role}</td><td>${p.region}</td>
       <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(p.salaryMax)}</td><td>${p.size}</td><td>${p.industry}</td>
+      <td>${ddayBadge(p)}</td>
       <td>${p.stack.slice(0,3).map(s=>`<span class="mini-tag">${s}</span>`).join('')}${p.stack.length>3?`<span class="mini-tag">+${p.stack.length-3}</span>`:''}</td>
       <td><span class="link" onclick="showDetail(${p.id})">상세 →</span></td>
     </tr>`).join('');
@@ -1341,6 +1396,7 @@ function showDetail(id){
         <div class="f"><div class="k">근무방식</div><div class="v">${p.work}</div></div>
         <div class="f"><div class="k">산업군</div><div class="v">${p.industry}</div></div>
         <div class="f"><div class="k">회사규모</div><div class="v">${p.size}</div></div>
+        <div class="f"><div class="k">마감일</div><div class="v">${ddayInfo(p).open?'상시채용':(ddayInfo(p).date||'-')} ${ddayBadge(p)}</div></div>
       </div>
       <div class="subhead">기술스택 · Cloud · DB · 협업툴</div>
       <div class="tags" style="margin-bottom:8px">${p.stack.map(s=>`<span class="tag">${s}</span>`).join('')}</div>
@@ -1747,6 +1803,7 @@ $('#clearHistBtn').onclick=clearHistory;
 $('#newAnalysisBtn').onclick=()=>{closeDrawer();ACTIVE_HID=null;switchView('upload');$('#fileList').innerHTML='';$('#analyzeWrap').classList.add('hidden');const b=$('#analyzeBtn');b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg> AI 분석 시작';toast('새 분석을 시작하세요','');};
 
 /* boot */
+seedDemoDeadlines();
 window.addEventListener('load',async()=>{
   try{await loadHistory();}catch(e){}
   updateHistBadge();
