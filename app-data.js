@@ -39,6 +39,9 @@
     // 데모 모드에서는 실제 분석/업로드를 하지 않음(프론트가 mock 사용)
     async analyzeFiles() { throw new Error("demo"); },
     async marketSummary() { throw new Error("demo"); },
+    async ai() { throw new Error("AI 도구는 실시간 모드(Supabase 연결)에서만 동작합니다."); },
+    async saveProfile(p) { try { localStorage.setItem("tp_profile", JSON.stringify(p)); } catch {} },
+    async loadProfile() { try { return JSON.parse(localStorage.getItem("tp_profile")) || { resume_text: "", portfolio_text: "" }; } catch { return { resume_text: "", portfolio_text: "" }; } },
   };
 
   // ========================================================
@@ -99,6 +102,26 @@
       // 전체 공고 종합 요약/인사이트
       async marketSummary(postings) {
         return callFn({ mode: "summary", postings });
+      },
+
+      // 커리어 AI 도구
+      async ai(task, context) {
+        const out = await callFn({ mode: "ai", task, context });
+        return out.result;
+      },
+
+      // 마이페이지 프로필 저장/불러오기
+      async saveProfile(p) {
+        const uid = await ensureAuth();
+        const { error } = await sb.from("profiles").upsert({
+          user_id: uid, resume_text: p.resume_text || "", portfolio_text: p.portfolio_text || "", updated_at: new Date().toISOString(),
+        });
+        if (error) throw error;
+      },
+      async loadProfile() {
+        await ensureAuth();
+        const { data } = await sb.from("profiles").select("*").maybeSingle();
+        return data || { resume_text: "", portfolio_text: "" };
       },
 
       // 기록 목록
