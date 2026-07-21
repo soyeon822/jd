@@ -809,20 +809,29 @@ function normalizePosting(d,id){
     pref:arr(d.pref),req:arr(d.req),keywords:arr(d.keywords)};
 }
 
+/* 프로미스 타임아웃 래퍼 (pdf.js 등 멈춤 방지) */
+function withTimeout(promise,ms,label){
+  return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error((label||'작업')+' 시간 초과')),ms))]);
+}
+
 /* 실시간 분석 실행 */
 async function runLiveAnalysis(){
-  const btn=$('#analyzeBtn');btn.innerHTML='<span class="spinner"></span> 업로드 & AI 분석 중…';btn.style.pointerEvents='none';
+  const btn=$('#analyzeBtn');btn.innerHTML='<span class="spinner"></span> 파일 읽는 중…';btn.style.pointerEvents='none';
   const t0=performance.now();
   try{
-    // 1) 파일 → payload (이미지 dataURL / PDF 텍스트) + Storage 업로드(선택)
-    const payload=[];const saveRows=[];
-    for(const f of LIVE_FILES){
-      let path=null;try{path=await window.TPDB.uploadFile(f);}catch(e){console.warn('스토리지 업로드 생략',e);}
+    // 1) 파일 → payload (이미지 dataURL / PDF 텍스트). Storage 저장은 비차단(선택).
+    const payload=[];
+    for(let i=0;i<LIVE_FILES.length;i++){
+      const f=LIVE_FILES[i];
+      btn.innerHTML=`<span class="spinner"></span> 파일 읽는 중… (${i+1}/${LIVE_FILES.length})`;
+      try{ window.TPDB.uploadFile(f).catch(()=>{}); }catch(e){}   // 저장은 기다리지 않음
       const isPdf=/\.pdf$/i.test(f.name);
-      if(isPdf){const text=await pdfToText(f);payload.push({name:f.name,text});}
-      else{const dataUrl=await fileToDataUrl(f);payload.push({name:f.name,dataUrl});}
-      saveRows.push({file_name:f.name,file_path:path});
+      try{
+        if(isPdf){ const text=await withTimeout(pdfToText(f),25000,'PDF 읽기'); payload.push({name:f.name,text}); }
+        else{ const dataUrl=await withTimeout(fileToDataUrl(f),15000,'파일 읽기'); payload.push({name:f.name,dataUrl}); }
+      }catch(e){ console.warn('파일 읽기 실패',f.name,e); }
     }
+    if(!payload.length)throw new Error('파일에서 내용을 읽지 못했습니다.');
     // 2) Edge Function 호출 → 파일 하나씩 처리(무한로딩·타임아웃 방지 + 진행률)
     const results=[];
     for(let i=0;i<payload.length;i++){
@@ -845,11 +854,13 @@ async function runLiveAnalysis(){
     });
     if(!POSTINGS.length)throw new Error('추출된 공고가 없습니다. 파일을 확인하세요.');
     // 4) 시장 요약/인사이트
+    btn.innerHTML='<span class="spinner"></span> 시장 요약 생성 중…';
     try{const s=await window.TPDB.marketSummary(POSTINGS.map(p=>({company:p.company,role:p.role,stack:p.stack,cloud:p.cloud,exp:p.exp,edu:p.edu,salaryMax:p.salaryMax,pref:p.pref})));
       if(s.summary)AI_SUMMARY=s.summary;
       if(s.insights&&s.insights.length)AI_INSIGHTS=s.insights.map(x=>[x.icon||'✦',x.title||'',x.body||'']);
     }catch(e){console.warn('요약 생성 생략',e);}
     // 5) 대시보드 + 기록 저장(DB)
+    btn.innerHTML='<span class="spinner"></span> 저장 중…';
     STATE.analyzed=true;STATE.analyzeSeconds=(performance.now()-t0)/1000;
     buildDashboard();buildFilters();renderTable();buildComparePicker();
     const comp=uniq(POSTINGS.map(p=>p.company)).length;
