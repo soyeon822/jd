@@ -447,7 +447,7 @@ tbody tr:last-child td{border-bottom:none}
       <table id="postTable">
         <thead><tr>
           <th data-sort="company">회사</th><th data-sort="role">직무</th><th data-sort="region">지역</th>
-          <th data-sort="exp">경력</th><th data-sort="salaryMax">연봉(최대)</th><th data-sort="size">규모</th>
+          <th data-sort="exp">경력</th><th data-sort="salaryMin">연봉(최저)</th><th data-sort="size">규모</th>
           <th data-sort="industry">산업군</th><th data-sort="_dday">마감</th><th>기술스택</th><th></th>
         </tr></thead>
         <tbody id="postBody"></tbody>
@@ -493,8 +493,14 @@ tbody tr:last-child td{border-bottom:none}
 
     <div class="grid two" style="align-items:start">
       <div class="card">
-        <div class="subhead" style="margin-top:0">📄 이력서 / 보유 스킬</div>
-        <textarea class="textarea" id="myResume" placeholder="경력·보유 기술·프로젝트 등을 붙여넣으세요."></textarea>
+        <div class="subhead" style="margin-top:0">📄 이력서 (PDF·이미지 첨부)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn btn-primary" id="resumePick">📎 파일 첨부</button>
+          <button class="btn btn-ghost" id="resumeAnalyze">이 이력서 분석</button>
+          <span id="resumeFileName" style="font-size:13px;color:var(--text-3)"></span>
+        </div>
+        <textarea class="textarea" id="myResume" placeholder="PDF·이미지를 첨부하면 자동으로 텍스트가 채워집니다. 직접 입력·수정도 가능해요."></textarea>
+        <input type="file" id="resumeFile" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none"/>
         <div class="subhead">💼 포트폴리오 (선택)</div>
         <textarea class="textarea" id="myPortfolio" placeholder="포트폴리오·깃허브·프로젝트 설명 등"></textarea>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
@@ -687,6 +693,9 @@ function ddayInfo(p){
   return{open:false,days,label:'D-'+days,status:'normal',date:raw};
 }
 function ddayBadge(p){const i=ddayInfo(p);return `<span class="dd dd-${i.status}">${i.label}</span>`;}
+/* ===== 연봉 정규화: 만원 단위 보정 + 대표값=최저 ===== */
+function sanSal(v){v=Number(v)||0;if(v>=100000)v=Math.round(v/10000);return v<0?0:v;}
+function repSalary(p){return (p.salaryMin&&p.salaryMin>0)?p.salaryMin:((p.salaryMax&&p.salaryMax>0)?p.salaryMax:0);}
 function seedDemoDeadlines(){
   const off=[3,6,1,14,-2,30,9,5,null,2,11,45,4,8,null,7];
   const today=new Date();today.setHours(0,0,0,0);
@@ -775,7 +784,7 @@ function arr(v){return Array.isArray(v)?v:(v?[v]:[]);}
 function normalizePosting(d,id){
   return {id,company:d.company||'미상',role:d.role||'미상',region:d.region||'미상',
     exp:Number(d.exp)||0,expLabel:d.expLabel||(Number(d.exp)?`경력 ${d.exp}년+`:'신입'),
-    edu:d.edu||'무관',employ:d.employ||'정규직',deadline:d.deadline||'',salaryMin:Number(d.salaryMin)||0,salaryMax:Number(d.salaryMax)||0,
+    edu:d.edu||'무관',employ:d.employ||'정규직',deadline:d.deadline||'',salaryMin:sanSal(d.salaryMin),salaryMax:sanSal(d.salaryMax),
     industry:d.industry||'기타',size:d.size||'미상',work:d.work||'출근',
     stack:arr(d.stack),lang:arr(d.lang),framework:arr(d.framework),cloud:arr(d.cloud),db:arr(d.db),
     tools:arr(d.tools),soft:arr(d.soft),welfare:arr(d.welfare),certs:arr(d.certs),
@@ -918,13 +927,14 @@ function buildDashboard(){
   const companies=uniq(POSTINGS.map(p=>p.company)).length;
   const avgStack=(POSTINGS.reduce((s,p)=>s+p.stack.length,0)/POSTINGS.length).toFixed(1);
   const avgExp=(POSTINGS.reduce((s,p)=>s+p.exp,0)/POSTINGS.length).toFixed(1);
-  const avgSalary=Math.round(POSTINGS.reduce((s,p)=>s+(p.salaryMin+p.salaryMax)/2,0)/POSTINGS.length);
+  const _salV=POSTINGS.map(repSalary).filter(v=>v>0);
+  const avgSalary=_salV.length?Math.round(_salV.reduce((a,b)=>a+b,0)/_salV.length):0;
   const soonList=POSTINGS.filter(p=>{const i=ddayInfo(p);return !i.open&&i.days>=0&&i.days<=7;})
     .sort((a,b)=>ddayInfo(a).days-ddayInfo(b).days);
   const kpis=[
     ['총 공고 수',POSTINGS.length,'건','📋'],['분석 성공',ok,'건','✅'],['기업 수',companies,'개','🏢'],
     ['마감 임박(7일)',soonList.length,'건','⏰'],
-    ['평균 요구기술',avgStack,'개','🧩'],['평균 경력',avgExp,'년','📈'],['평균 연봉',fmtMoney(avgSalary),'','💰'],
+    ['평균 요구기술',avgStack,'개','🧩'],['평균 경력',avgExp,'년','📈'],['평균 연봉(최저기준)',moneyOrNego(avgSalary),'','💰'],
     ['분석 시간',STATE.analyzeSeconds.toFixed(1),'초','⚡']
   ];
 
@@ -984,7 +994,7 @@ function buildDashboard(){
 
     <div class="section-title"><span class="n">15</span>연봉 분석</div>
     <div class="grid two">
-      <div class="chart-card anim"><h4>연봉 통계</h4><div class="desc">평균 · 중앙값 · 최고 · 최저 (만원)</div><div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:6px" id="salaryStats"></div></div>
+      <div class="chart-card anim"><h4>연봉 통계</h4><div class="desc">공고별 <b>최저 연봉</b> 기준 · 평균/중앙값/최고/최저 (만원)</div><div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:6px" id="salaryStats"></div></div>
       <div class="chart-card anim"><h4>직무별 연봉 범위 (박스플롯)</h4><div class="desc">최소~최대 연봉 밴드</div><div class="chart-wrap" style="height:300px"><canvas id="salaryChart"></canvas></div></div>
     </div>
 
@@ -1074,13 +1084,12 @@ function renderBarsAndTags(){
     `<div style="font-size:12px;color:var(--text-3);margin-top:10px;text-align:center">🗺️ 서울 강남권 집중 — 전체의 ${Math.round(POSTINGS.filter(p=>p.region.includes('강남')).length/N*100)}%</div>`;
   $$('#regionMap .map-row.clickable').forEach(r=>r.onclick=()=>showMatch('region',r.dataset.k,'지역'));
 
-  const salP=POSTINGS.filter(p=>p.salaryMax>0);
-  const avgs=salP.map(p=>((p.salaryMin||p.salaryMax)+p.salaryMax)/2);
+  const salV=POSTINGS.map(repSalary).filter(v=>v>0);
   const stats=[
-    ['평균',avgs.length?Math.round(avgs.reduce((a,b)=>a+b)/avgs.length):0],
-    ['중앙값',avgs.length?median(avgs):0],
-    ['최고',salP.length?Math.max(...salP.map(p=>p.salaryMax)):0],
-    ['최저',salP.length?Math.min(...salP.map(p=>p.salaryMin||p.salaryMax)):0]];
+    ['평균',salV.length?Math.round(salV.reduce((a,b)=>a+b)/salV.length):0],
+    ['중앙값',salV.length?median(salV):0],
+    ['최고',salV.length?Math.max(...salV):0],
+    ['최저',salV.length?Math.min(...salV):0]];
   $('#salaryStats').innerHTML=stats.map(s=>`
     <div class="card" style="padding:16px;box-shadow:none;border-color:var(--border)"><div class="lab" style="font-size:12px;color:var(--text-3)">${s[0]}</div>
     <div style="font-size:24px;font-weight:800;margin-top:4px">${moneyOrNego(Math.round(s[1]))}</div></div>`).join('');
@@ -1128,8 +1137,8 @@ function renderClusters(){
   const wrap=$('#clusterWrap');if(!wrap)return;
   wrap.innerHTML=entries.map(([fam,ps])=>{
     const topStack=sortedEntries(countBy(ps,p=>p.stack)).slice(0,5);
-    const sal=ps.filter(p=>p.salaryMax>0);
-    const avg=sal.length?Math.round(sal.reduce((a,p)=>a+((p.salaryMin||p.salaryMax)+p.salaryMax)/2,0)/sal.length):0;
+    const sal=ps.filter(p=>repSalary(p)>0);
+    const avg=sal.length?Math.round(sal.reduce((a,p)=>a+repSalary(p),0)/sal.length):0;
     return `<div class="chart-card cluster-card anim" onclick="showCluster('${fam}')" style="cursor:pointer">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <h4 style="margin:0">${fam}</h4><span class="chip">${ps.length}건</span></div>
@@ -1193,7 +1202,7 @@ function showReqGroup(v){openPostingList('자격요건 · '+v, POSTINGS.filter(p
 function openPostingList(title,list){
   const rows = list.length ? list.map(p=>`
       <tr><td><b>${p.company}</b></td><td>${p.role}</td><td>${p.region}</td>
-      <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(p.salaryMax)}</td>
+      <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(repSalary(p))}</td>
       <td><span class="link" onclick="closeModal();showDetail(${p.id})">상세 →</span></td></tr>`).join('')
     : `<tr><td colspan="6"><div class="empty" style="padding:34px"><div class="ic">🔍</div>해당 공고가 없습니다</div></td></tr>`;
   openModal(`
@@ -1359,7 +1368,7 @@ function renderTable(){
   body.innerHTML=rows.map(p=>`
     <tr>
       <td><b>${p.company}</b></td><td>${p.role}</td><td>${p.region}</td>
-      <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(p.salaryMax)}</td><td>${p.size}</td><td>${p.industry}</td>
+      <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(repSalary(p))}</td><td>${p.size}</td><td>${p.industry}</td>
       <td>${ddayBadge(p)}</td>
       <td>${p.stack.slice(0,3).map(s=>`<span class="mini-tag">${s}</span>`).join('')}${p.stack.length>3?`<span class="mini-tag">+${p.stack.length-3}</span>`:''}</td>
       <td><span class="link" onclick="showDetail(${p.id})">상세 →</span></td>
@@ -1518,7 +1527,7 @@ function runMatch(txt,fromHistory){
       <div class="tbl-wrap"><table><thead><tr><th>순위</th><th>회사</th><th>직무</th><th>적합도</th><th>연봉</th><th></th></tr></thead>
         <tbody>${recommend.map((r,i)=>`<tr><td><b>${i+1}</b></td><td>${r.p.company}</td><td>${r.p.role}</td>
           <td><div class="bar-track" style="width:90px;display:inline-block;vertical-align:middle"><i style="width:${r.pct}%"></i></div> <b style="font-size:12px">${r.pct}%</b></td>
-          <td>${moneyOrNego(r.p.salaryMax)}</td><td><span class="link" onclick="showDetail(${r.p.id})">보기</span></td></tr>`).join('')}</tbody></table></div>
+          <td>${moneyOrNego(repSalary(r.p))}</td><td><span class="link" onclick="showDetail(${r.p.id})">보기</span></td></tr>`).join('')}</tbody></table></div>
     </div>`;
   requestAnimationFrame(()=>{const arc=$('#gaugeArc');if(arc)arc.style.strokeDashoffset=off;});
   if(!fromHistory){
@@ -1558,6 +1567,26 @@ async function initMypage(){
     catch(e){toast('저장 실패: '+(e.message||e),'err');}
   };
   $$('#view-mypage [data-ai]').forEach(b=>b.onclick=()=>runMyTool(b.dataset.ai,b));
+  $('#resumePick').onclick=()=>$('#resumeFile').click();
+  $('#resumeFile').onchange=e=>{const f=e.target.files[0];if(f)handleResumeFile(f);};
+  $('#resumeAnalyze').onclick=()=>runMyTool('match',$('#resumeAnalyze'));
+}
+async function handleResumeFile(file){
+  const nameEl=$('#resumeFileName');nameEl.textContent=file.name+' 처리 중… ';
+  try{
+    let text='';
+    if(/\.pdf$/i.test(file.name)){
+      text=await pdfToText(file);
+    }else{
+      if(!window.TP_LIVE){toast('이미지 이력서 인식은 실시간 모드에서만 됩니다. PDF를 첨부하거나 직접 입력하세요','err');nameEl.textContent='';return;}
+      const dataUrl=await fileToDataUrl(file);
+      text=await window.TPDB.ai('ocr_text',{dataUrl});
+    }
+    if(!text||!String(text).trim()){toast('텍스트를 추출하지 못했어요. 직접 입력해주세요','err');nameEl.textContent=file.name+' (추출 실패)';return;}
+    $('#myResume').value=String(text).trim();
+    nameEl.textContent='✓ '+file.name;
+    toast('이력서 텍스트를 추출했어요. [저장] 후 분석하세요','ok');
+  }catch(e){console.error(e);toast('처리 실패: '+(e.message||e),'err');nameEl.textContent='';}
 }
 async function runMyTool(kind,btn){
   const resume=$('#myResume').value.trim();
@@ -1802,12 +1831,32 @@ $('#drawerBackdrop').onclick=closeDrawer;
 $('#clearHistBtn').onclick=clearHistory;
 $('#newAnalysisBtn').onclick=()=>{closeDrawer();ACTIVE_HID=null;switchView('upload');$('#fileList').innerHTML='';$('#analyzeWrap').classList.add('hidden');const b=$('#analyzeBtn');b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg> AI 분석 시작';toast('새 분석을 시작하세요','');};
 
+/* 새로고침 시 가장 최근 분석을 자동 복원 (재업로드 불필요) */
+async function restoreLatest(){
+  const latest=HISTORY.find(h=>h.type!=='resume');
+  if(!latest)return false;
+  const full=await window.TPDB.loadAnalysis(latest.id);
+  if(full&&full.postings&&full.postings.length){
+    POSTINGS.length=0;
+    full.postings.forEach((p,i)=>POSTINGS.push(normalizePosting(p,i+1)));
+    if(full.summary)AI_SUMMARY=full.summary;
+    if(full.insights&&full.insights.length)AI_INSIGHTS=full.insights.map(x=>[x.icon||'✦',x.title||'',x.body||'']);
+    ACTIVE_HID=latest.id;
+    STATE.analyzed=true;STATE.analyzeSeconds=latest.seconds||0;
+    buildDashboard();buildFilters();renderTable();buildComparePicker();renderHistory();
+    return true;
+  }
+  return false;
+}
+
 /* boot */
 seedDemoDeadlines();
 window.addEventListener('load',async()=>{
   try{await loadHistory();}catch(e){}
   updateHistBadge();
-  toast(window.TP_LIVE?'실시간 저장 모드로 연결되었습니다 ✦':'데모 모드입니다 · config.js 설정 시 실시간 저장 ✦', window.TP_LIVE?'ok':'');
+  let restored=false;
+  try{restored=await restoreLatest();}catch(e){console.warn('복원 생략',e);}
+  toast(window.TP_LIVE?(restored?'최근 분석을 자동으로 불러왔어요 ✦':'실시간 저장 모드로 연결되었습니다 ✦'):'데모 모드입니다 · config.js 설정 시 실시간 저장 ✦', window.TP_LIVE?'ok':'');
 });
 </script>
 </body>
