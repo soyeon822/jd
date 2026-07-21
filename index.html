@@ -128,6 +128,13 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .bar-track{height:22px;background:var(--bg-2);border-radius:8px;overflow:hidden}
 .bar-track>i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--primary),var(--violet));transition:width .8s cubic-bezier(.2,.8,.2,1)}
 .bar-row .bv{text-align:right;color:var(--text-2);font-weight:600;font-variant-numeric:tabular-nums}
+.bar-row.clickable{cursor:pointer;border-radius:9px;padding:3px 6px;margin:-3px -6px;transition:.12s}
+.bar-row.clickable:hover{background:var(--bg-2)}
+.bar-row.clickable:hover .bn{color:var(--primary)}
+.tag.clickable,.cloud span.clk,.map-row.clickable{cursor:pointer}
+.map-row.clickable{border-radius:8px;padding:2px 6px;margin:0 -6px 8px;transition:.12s}
+.map-row.clickable:hover{background:var(--bg-2)}
+.click-hint{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--primary);background:var(--primary-tint);padding:5px 12px;border-radius:999px;font-weight:600;margin-top:8px}
 .tags{display:flex;flex-wrap:wrap;gap:8px}
 .tag{font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--bg-2);color:var(--text-2);border:1px solid var(--border);transition:.15s}
 .tag:hover{border-color:var(--primary);color:var(--primary)}
@@ -763,7 +770,8 @@ function buildDashboard(){
   c.innerHTML=`
     <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px">
       <div><h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em">Job Market Dashboard</h1>
-      <p style="color:var(--text-2);margin-top:4px">16개 채용공고 · ${companies}개 기업 · 실시간 시장 분석 리포트</p></div>
+      <p style="color:var(--text-2);margin-top:4px">${POSTINGS.length}개 채용공고 · ${companies}개 기업 · 시장 분석 리포트</p>
+      <span class="click-hint">👆 그래프의 항목을 클릭하면 해당 공고 목록을 볼 수 있어요</span></div>
       <span class="pill" style="background:rgba(22,163,74,.12);color:var(--success)">● 분석 완료</span>
     </div>
 
@@ -868,71 +876,115 @@ function renderInsights(){
 function typeText(el,text){el.textContent='';el.classList.add('typed');let i=0;
   const iv=setInterval(()=>{el.textContent=text.slice(0,i);i+=3;if(i>text.length){clearInterval(iv);el.textContent=text;el.classList.remove('typed');}},12);}
 
-function renderBar(container,entries,total,max){
+function renderBar(container,entries,total,max,onClick){
   const mx=max||(entries[0]?entries[0][1]:1);
   container.innerHTML=entries.map(([k,v])=>`
-    <div class="bar-row"><div class="bn">${k}</div>
+    <div class="bar-row${onClick?' clickable':''}" ${onClick?`data-key="${String(k).replace(/"/g,'&quot;')}"`:''}><div class="bn">${k}</div>
     <div class="bar-track"><i style="width:0" data-w="${(v/mx*100)}"></i></div>
     <div class="bv">${v}건 · ${Math.round(v/total*100)}%</div></div>`).join('');
   requestAnimationFrame(()=>$$('.bar-track>i',container).forEach(i=>i.style.width=i.dataset.w+'%'));
+  if(onClick)$$('.bar-row.clickable',container).forEach(r=>r.onclick=()=>onClick(r.dataset.key));
 }
 
 function renderBarsAndTags(){
   const N=POSTINGS.length;
-  renderBar($('#stackBars'), sortedEntries(countBy(POSTINGS,p=>p.stack)).slice(0,20), N);
-  renderBar($('#softBars'), sortedEntries(countBy(POSTINGS,p=>p.soft)), N);
-  renderBar($('#welfareBars'), sortedEntries(countBy(POSTINGS,p=>p.welfare)), N);
-  renderBar($('#prefBars'), sortedEntries(groupPref()), N);
-  renderBar($('#reqBars'), sortedEntries(groupReq()), N);
+  renderBar($('#stackBars'), sortedEntries(countBy(POSTINGS,p=>p.stack)).slice(0,20), N, null, k=>showMatch('stack',k,'기술스택'));
+  renderBar($('#softBars'), sortedEntries(countBy(POSTINGS,p=>p.soft)), N, null, k=>showMatch('soft',k,'Soft Skill'));
+  renderBar($('#welfareBars'), sortedEntries(countBy(POSTINGS,p=>p.welfare)), N, null, k=>showMatch('welfare',k,'복지'));
+  renderBar($('#prefBars'), sortedEntries(groupPref()), N, null, k=>showPrefGroup(k));
+  renderBar($('#reqBars'), sortedEntries(groupReq()), N, null, k=>showReqGroup(k));
 
   const tools=sortedEntries(countBy(POSTINGS,p=>p.tools));
-  $('#toolTags').innerHTML=tools.map(([k,v])=>`<span class="tag">${k}<span class="c">${v}</span></span>`).join('');
+  $('#toolTags').innerHTML=tools.map(([k,v])=>`<span class="tag clickable" data-k="${k}">${k}<span class="c">${v}</span></span>`).join('');
+  $$('#toolTags .tag.clickable').forEach(t=>t.onclick=()=>showMatch('tools',t.dataset.k,'협업툴'));
 
   const reg=sortedEntries(countBy(POSTINGS,p=>p.region));
   const rmax=reg[0][1];
   $('#regionMap').innerHTML=reg.map(([k,v])=>`
-    <div class="map-row"><span class="rn">${k}</span>
+    <div class="map-row clickable" data-k="${k}"><span class="rn">${k}</span>
     <div class="bar-track"><i style="width:${v/rmax*100}%;background:linear-gradient(90deg,var(--cyan),var(--primary))"></i></div>
     <span class="bv">${v}</span></div>`).join('') +
     `<div style="font-size:12px;color:var(--text-3);margin-top:10px;text-align:center">🗺️ 서울 강남권 집중 — 전체의 ${Math.round(POSTINGS.filter(p=>p.region.includes('강남')).length/N*100)}%</div>`;
+  $$('#regionMap .map-row.clickable').forEach(r=>r.onclick=()=>showMatch('region',r.dataset.k,'지역'));
 
-  const avgs=POSTINGS.map(p=>(p.salaryMin+p.salaryMax)/2);
-  const stats=[['평균',Math.round(avgs.reduce((a,b)=>a+b)/avgs.length)],['중앙값',median(avgs)],
-    ['최고',Math.max(...POSTINGS.map(p=>p.salaryMax))],['최저',Math.min(...POSTINGS.map(p=>p.salaryMin))]];
+  const salP=POSTINGS.filter(p=>p.salaryMax>0);
+  const avgs=salP.map(p=>((p.salaryMin||p.salaryMax)+p.salaryMax)/2);
+  const stats=[
+    ['평균',avgs.length?Math.round(avgs.reduce((a,b)=>a+b)/avgs.length):0],
+    ['중앙값',avgs.length?median(avgs):0],
+    ['최고',salP.length?Math.max(...salP.map(p=>p.salaryMax)):0],
+    ['최저',salP.length?Math.min(...salP.map(p=>p.salaryMin||p.salaryMax)):0]];
   $('#salaryStats').innerHTML=stats.map(s=>`
     <div class="card" style="padding:16px;box-shadow:none;border-color:var(--border)"><div class="lab" style="font-size:12px;color:var(--text-3)">${s[0]}</div>
-    <div style="font-size:24px;font-weight:800;margin-top:4px">${fmtMoney(Math.round(s[1]))}</div></div>`).join('');
+    <div style="font-size:24px;font-weight:800;margin-top:4px">${moneyOrNego(Math.round(s[1]))}</div></div>`).join('');
 
   const kw=sortedEntries(countBy(POSTINGS,p=>p.keywords));
   const kmax=kw[0][1];
   $('#keywordCloud').innerHTML=kw.map(([k,v],i)=>{
     const size=14+(v/kmax)*26;const op=0.55+(v/kmax)*0.45;
-    return `<span style="font-size:${size}px;color:${PAL[i%PAL.length]};opacity:${op}">${k}</span>`;}).join('');
+    return `<span class="clk" data-k="${k}" style="font-size:${size}px;color:${PAL[i%PAL.length]};opacity:${op}">${k}</span>`;}).join('');
+  $$('#keywordCloud span.clk').forEach(s=>s.onclick=()=>showMatch('keywords',s.dataset.k,'키워드'));
 }
 
+function prefGroupOf(x){
+  if(/도메인|금융|여행|게임|커머스|콘텐츠|글로벌/.test(x))return '도메인 경험';
+  if(/트래픽|분산|대규모|동접|스트리밍|데이터 파이프라인/.test(x))return '대규모 트래픽/분산';
+  if(/사이드|오픈소스|대회/.test(x))return '사이드 프로젝트/오픈소스';
+  if(/설계|아키텍처|MSA|이벤트|시스템|IaC|MLOps|모니터링/.test(x))return '아키텍처 설계';
+  if(/최적화|성능/.test(x))return '성능 최적화';
+  if(/테스트|품질/.test(x))return '테스트/품질';
+  return '도메인 경험';
+}
+function reqGroupOf(x){
+  if(/Spring|React|프레임워크|Node|Kotlin|Swift|MVVM/.test(x))return '프레임워크 숙련';
+  if(/RDBMS|DB|SQL|통계|데이터/.test(x))return 'RDBMS/DB 이해';
+  if(/CS|자료구조|알고리즘|기초/.test(x))return 'CS 기초/알고리즘';
+  if(/API|설계|아키텍처|시스템|분산/.test(x))return 'API/아키텍처 설계';
+  if(/Kubernetes|AWS|네트워크|인프라|처리/.test(x))return '인프라/네트워크';
+  if(/\d년|경력|이상/.test(x))return '해당 언어 N년 경력';
+  return '프레임워크 숙련';
+}
 function groupPref(){
   const g={'도메인 경험':0,'대규모 트래픽/분산':0,'사이드 프로젝트/오픈소스':0,'아키텍처 설계':0,'성능 최적화':0,'테스트/품질':0};
-  POSTINGS.forEach(p=>p.pref.forEach(x=>{
-    if(/도메인|금융|여행|게임|커머스|콘텐츠|글로벌/.test(x))g['도메인 경험']++;
-    else if(/트래픽|분산|대규모|동접|스트리밍|데이터 파이프라인/.test(x))g['대규모 트래픽/분산']++;
-    else if(/사이드|오픈소스|대회/.test(x))g['사이드 프로젝트/오픈소스']++;
-    else if(/설계|아키텍처|MSA|이벤트|시스템|IaC|MLOps|모니터링/.test(x))g['아키텍처 설계']++;
-    else if(/최적화|성능/.test(x))g['성능 최적화']++;
-    else if(/테스트|품질/.test(x))g['테스트/품질']++;
-    else g['도메인 경험']++;
-  }));return g;
+  POSTINGS.forEach(p=>p.pref.forEach(x=>{g[prefGroupOf(x)]++;}));return g;
 }
 function groupReq(){
   const g={'해당 언어 N년 경력':0,'프레임워크 숙련':0,'RDBMS/DB 이해':0,'CS 기초/알고리즘':0,'API/아키텍처 설계':0,'인프라/네트워크':0};
-  POSTINGS.forEach(p=>p.req.forEach(x=>{
-    if(/\d년|경력|이상/.test(x))g['해당 언어 N년 경력']++;
-    else if(/Spring|React|프레임워크|Node|Kotlin|Swift|MVVM/.test(x))g['프레임워크 숙련']++;
-    else if(/RDBMS|DB|SQL|통계|데이터/.test(x))g['RDBMS/DB 이해']++;
-    else if(/CS|자료구조|알고리즘|기초/.test(x))g['CS 기초/알고리즘']++;
-    else if(/API|설계|아키텍처|시스템|분산/.test(x))g['API/아키텍처 설계']++;
-    else if(/Kubernetes|AWS|네트워크|인프라|처리/.test(x))g['인프라/네트워크']++;
-    else g['프레임워크 숙련']++;
-  }));return g;
+  POSTINGS.forEach(p=>p.req.forEach(x=>{g[reqGroupOf(x)]++;}));return g;
+}
+
+/* ===== 연봉 표시(0이면 협의) ===== */
+function moneyOrNego(v){return (!v||v<=0)?'연봉 협의':fmtMoney(v);}
+function salaryRange(p){
+  if((!p.salaryMin||p.salaryMin<=0)&&(!p.salaryMax||p.salaryMax<=0))return '연봉 협의';
+  if(!p.salaryMin||p.salaryMin<=0)return moneyOrNego(p.salaryMax);
+  if(!p.salaryMax||p.salaryMax<=0)return moneyOrNego(p.salaryMin);
+  return `${fmtMoney(p.salaryMin)} ~ ${fmtMoney(p.salaryMax)}`;
+}
+
+/* ===== 차트/그래프 클릭 → 해당 공고 목록 ===== */
+function matchByField(field,val){return POSTINGS.filter(p=>{const v=p[field];return Array.isArray(v)?v.includes(val):v===val;});}
+function showMatch(field,val,label){openPostingList((label||field)+' · '+val, matchByField(field,val));}
+function showExpBucket(b){
+  const list=POSTINGS.filter(p=>{const e=p.exp;
+    if(b==='신입')return e===0; if(b==='1년')return e===1;
+    if(b==='2-3년')return e>=2&&e<=3; if(b==='4-5년')return e>=4&&e<=5; return e>5;});
+  openPostingList('경력 · '+b, list);
+}
+function showPrefGroup(v){openPostingList('우대사항 · '+v, POSTINGS.filter(p=>p.pref.some(x=>prefGroupOf(x)===v)));}
+function showReqGroup(v){openPostingList('자격요건 · '+v, POSTINGS.filter(p=>p.req.some(x=>reqGroupOf(x)===v)));}
+function openPostingList(title,list){
+  const rows = list.length ? list.map(p=>`
+      <tr><td><b>${p.company}</b></td><td>${p.role}</td><td>${p.region}</td>
+      <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(p.salaryMax)}</td>
+      <td><span class="link" onclick="closeModal();showDetail(${p.id})">상세 →</span></td></tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty" style="padding:34px"><div class="ic">🔍</div>해당 공고가 없습니다</div></td></tr>`;
+  openModal(`
+    <div class="modal-head"><div><h3>${title}</h3><div class="sub">${list.length}개 공고</div></div>
+    <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><div class="tbl-wrap"><table>
+      <thead><tr><th>회사</th><th>직무</th><th>지역</th><th>경력</th><th>연봉</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>`);
 }
 
 /* CHARTS */
@@ -994,6 +1046,16 @@ function rerenderCharts(){
     options:Object.assign(baseOpts(),{indexAxis:'y',plugins:{legend:{display:false},
       tooltip:{callbacks:{label:c=>`${c.raw[0].toLocaleString()}~${c.raw[1].toLocaleString()}만원`}}},
       scales:{x:{grid:{color:cssv('--border')},ticks:{color:cssv('--text-3'),font:{size:11},callback:v=>v/10000+'억'}},y:{grid:{display:false},ticks:{color:cssv('--text-3'),font:{size:11}}}}})});
+
+  // ===== 차트 클릭 → 해당 공고 목록 =====
+  const pointer=(e,els)=>{if(e.native&&e.native.target)e.native.target.style.cursor=els.length?'pointer':'default';};
+  const cmap={lang:['lang','언어'],fw:['framework','Framework'],cloud:['cloud','Cloud'],db:['db','Database'],
+    edu:['edu','학력'],work:['work','근무형태'],industry:['industry','산업군'],size:['size','기업규모']};
+  Object.entries(cmap).forEach(([key,fl])=>{const c=STATE.charts[key];if(!c)return;
+    c.options.onClick=(e,els)=>{if(els.length)showMatch(fl[0],c.data.labels[els[0].index],fl[1]);};
+    c.options.onHover=pointer;});
+  if(STATE.charts.exp){STATE.charts.exp.options.onClick=(e,els)=>{if(els.length)showExpBucket(STATE.charts.exp.data.labels[els[0].index]);};STATE.charts.exp.options.onHover=pointer;}
+  if(STATE.charts.salary){STATE.charts.salary.options.onClick=(e,els)=>{if(els.length)showMatch('role',STATE.charts.salary.data.labels[els[0].index],'직무');};STATE.charts.salary.options.onHover=pointer;}
 }
 
 /* FILTERS + TABLE */
@@ -1032,7 +1094,7 @@ function renderTable(){
   body.innerHTML=rows.map(p=>`
     <tr>
       <td><b>${p.company}</b></td><td>${p.role}</td><td>${p.region}</td>
-      <td><span class="chip">${p.expLabel}</span></td><td>${fmtMoney(p.salaryMax)}</td><td>${p.size}</td><td>${p.industry}</td>
+      <td><span class="chip">${p.expLabel}</span></td><td>${moneyOrNego(p.salaryMax)}</td><td>${p.size}</td><td>${p.industry}</td>
       <td>${p.stack.slice(0,3).map(s=>`<span class="mini-tag">${s}</span>`).join('')}${p.stack.length>3?`<span class="mini-tag">+${p.stack.length-3}</span>`:''}</td>
       <td><span class="link" onclick="showDetail(${p.id})">상세 →</span></td>
     </tr>`).join('');
@@ -1043,7 +1105,7 @@ function showDetail(id){
   const p=POSTINGS.find(x=>x.id===id);
   openModal(`
     <div class="modal-head">
-      <div><h3>${p.company} · ${p.role}</h3><div class="sub">${p.region} · ${p.expLabel} · ${p.employ} · ${fmtMoney(p.salaryMin)}~${fmtMoney(p.salaryMax)}</div></div>
+      <div><h3>${p.company} · ${p.role}</h3><div class="sub">${p.region} · ${p.expLabel} · ${p.employ} · ${salaryRange(p)}</div></div>
       <button class="icon-btn" style="margin-left:auto" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -1059,7 +1121,7 @@ function showDetail(id){
         <div class="f"><div class="k">경력</div><div class="v">${p.expLabel}</div></div>
         <div class="f"><div class="k">학력</div><div class="v">${p.edu}</div></div>
         <div class="f"><div class="k">고용형태</div><div class="v">${p.employ}</div></div>
-        <div class="f"><div class="k">연봉</div><div class="v">${fmtMoney(p.salaryMin)} ~ ${fmtMoney(p.salaryMax)}</div></div>
+        <div class="f"><div class="k">연봉</div><div class="v">${salaryRange(p)}</div></div>
         <div class="f"><div class="k">근무방식</div><div class="v">${p.work}</div></div>
         <div class="f"><div class="k">산업군</div><div class="v">${p.industry}</div></div>
         <div class="f"><div class="k">회사규모</div><div class="v">${p.size}</div></div>
@@ -1080,7 +1142,7 @@ function showDetail(id){
 ▪ 자격증: ${p.certs.length?p.certs.join(', '):'무관'}
 ▪ 복리후생: ${p.welfare.join(', ')}
 ▪ 고용형태: ${p.employ} · ${p.edu}
-▪ 연봉: 협의 (${fmtMoney(p.salaryMin)}~${fmtMoney(p.salaryMax)} 추정)
+▪ 연봉: ${salaryRange(p)}
 
 [OCR 신뢰도 98.4% · NER 추출 완료]</div>
     </div>`);
@@ -1104,7 +1166,7 @@ function renderCompareTable(){
   const picked=STATE.compare.map(c=>POSTINGS.find(p=>p.company===c));
   const rows=[
     ['직무',p=>p.role],['지역',p=>p.region],['경력',p=>p.expLabel],['학력',p=>p.edu],
-    ['연봉',p=>`${fmtMoney(p.salaryMin)}~${fmtMoney(p.salaryMax)}`],['산업군',p=>p.industry],['규모',p=>p.size],
+    ['연봉',p=>salaryRange(p)],['산업군',p=>p.industry],['규모',p=>p.size],
     ['근무방식',p=>p.work],['기술스택',p=>p.stack.map(s=>`<span class="mini-tag">${s}</span>`).join('')],
     ['Cloud',p=>p.cloud.join(', ')],['복지',p=>p.welfare.join(', ')]
   ];
@@ -1184,7 +1246,7 @@ function runMatch(txt,fromHistory){
       <div class="tbl-wrap"><table><thead><tr><th>순위</th><th>회사</th><th>직무</th><th>적합도</th><th>연봉</th><th></th></tr></thead>
         <tbody>${recommend.map((r,i)=>`<tr><td><b>${i+1}</b></td><td>${r.p.company}</td><td>${r.p.role}</td>
           <td><div class="bar-track" style="width:90px;display:inline-block;vertical-align:middle"><i style="width:${r.pct}%"></i></div> <b style="font-size:12px">${r.pct}%</b></td>
-          <td>${fmtMoney(r.p.salaryMax)}</td><td><span class="link" onclick="showDetail(${r.p.id})">보기</span></td></tr>`).join('')}</tbody></table></div>
+          <td>${moneyOrNego(r.p.salaryMax)}</td><td><span class="link" onclick="showDetail(${r.p.id})">보기</span></td></tr>`).join('')}</tbody></table></div>
     </div>`;
   requestAnimationFrame(()=>{const arc=$('#gaugeArc');if(arc)arc.style.strokeDashoffset=off;});
   if(!fromHistory){
