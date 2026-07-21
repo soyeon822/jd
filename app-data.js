@@ -102,7 +102,12 @@
       // 파일들을 Storage 에 업로드 → 경로 반환
       async uploadFile(file) {
         const uid = await ensureAuth();
-        const path = `${uid}/${Date.now()}_${file.name}`;
+        // Storage 키는 ASCII 만 허용 → 한글·공백·특수문자 제거
+        const dot = file.name.lastIndexOf(".");
+        const ext = dot > -1 ? file.name.slice(dot).replace(/[^.\w]/g, "") : "";
+        const safe = (dot > -1 ? file.name.slice(0, dot) : file.name)
+          .normalize("NFC").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_").slice(0, 40) || "file";
+        const path = `${uid}/${Date.now()}_${safe}${ext}`;
         const { error } = await sb.storage.from("job-postings").upload(path, file, { upsert: false });
         if (error) throw error;
         return path;
