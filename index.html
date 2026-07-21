@@ -941,7 +941,7 @@ function closeModal(){$('#modalRoot').innerHTML='';}
 
 /* DASHBOARD */
 function buildDashboard(){
-  const ok=OCR_STATUS.filter(s=>s==='ok').length;
+  const ok=STATE.realData?POSTINGS.length:OCR_STATUS.filter(s=>s==='ok').length;
   const companies=uniq(POSTINGS.map(p=>p.company)).length;
   const avgStack=(POSTINGS.reduce((s,p)=>s+p.stack.length,0)/POSTINGS.length).toFixed(1);
   const avgExp=(POSTINGS.reduce((s,p)=>s+p.exp,0)/POSTINGS.length).toFixed(1);
